@@ -32,6 +32,8 @@ class RawTxWindow;
 class QDomDocument;
 class QDomElement;
 
+class CanDbMessage;
+
 class RawTxWindow : public ConfigurableWidget
 {
     Q_OBJECT
@@ -43,7 +45,15 @@ public:
     virtual bool saveXML(Backend &backend, QDomDocument &xml, QDomElement &root);
     virtual bool loadXML(Backend &backend, QDomElement &el);
 
+
+public slots:
+    void setMessage(const CanMessage &msg, const QString &name, CanInterfaceId interfaceId, CanDbMessage *dbMsg = nullptr);
+
+signals:
+    void messageUpdated(const CanMessage &msg);
+
 private slots:
+    void reflash_can_msg(void);
     void changeDLC();
     void updateCapabilities();
     void changeRepeatRate(int ms);
@@ -71,6 +81,10 @@ private:
     void hideFDFields();
     void showFDFields();
 
-    void reflash_can_msg(void);
+    void updateSignalTable();
+
+    CanInterfaceId _slavedInterfaceId;
+    bool _is_setting_message;
+    CanDbMessage *_currentDbMsg;
 
 };

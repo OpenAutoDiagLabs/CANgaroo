@@ -1,6 +1,6 @@
 /*
 
-  Copyright (c) 2024 Schildkroet
+  Copyright (c) 2026 Jayachandran Dharuman
 
   This file is part of cangaroo.
 
@@ -31,9 +31,12 @@ namespace Ui {
 class TxGeneratorWindow;
 }
 
+#include "BitMatrixWidget.h"
+#include <core/CanDbMessage.h>
+#include <core/CanDbSignal.h>
+
 class QDomDocument;
 class QDomElement;
-
 
 class TxGeneratorWindow : public ConfigurableWidget
 {
@@ -44,33 +47,60 @@ public:
 
     virtual bool saveXML(Backend &backend, QDomDocument &xml, QDomElement &root);
     virtual bool loadXML(Backend &backend, QDomElement &el);
+    virtual QSize sizeHint() const override;
 
-    enum {
-        column_nr = 0,
-        column_name,
-        column_cycletime,
-    };
+signals:
+    void messageSelected(const CanMessage &msg, const QString &name, CanInterfaceId interfaceId, CanDbMessage *dbMsg);
+    void interfaceChanged(CanInterfaceId interfaceId);
+
+public slots:
+    void updateMessage(const CanMessage &msg);
 
 private slots:
-    void SendTimer_timeout();
-    void update();
-
-    void on_treeWidget_itemClicked(QTreeWidgetItem *item, int column);
-
-    void on_btnAdd_released();
+    void on_lineEditSearchAvailable_textChanged(const QString &text);
+    void on_sliderLayoutZoom_valueChanged(int value);
+    void on_cbLayoutCompact_toggled(bool checked);
+    void on_btnAddToList_released();
+    void on_btnAddManual_released();
+    void on_btnRemove_released();
+    void on_btnSendOnce_released();
+    void on_btnBulkRun_clicked();
+    void on_btnBulkStop_clicked();
+    void on_spinInterval_valueChanged(int i);
+    void on_comboBoxInterface_currentIndexChanged(int index);
+    void on_treeAvailable_itemDoubleClicked(QTreeWidgetItem *item, int column);
+    void on_treeAvailable_itemSelectionChanged();
+    void on_treeActive_itemSelectionChanged();
+    void onSendTimerTimeout();
+    void onSetupChanged();
+    void on_btnSelectAll_released();
+    void on_btnClearAll_released();
+    void on_treeActive_itemChanged(QTreeWidgetItem *item, int column);
+    void onStatusButtonClicked();
+    void updateMeasurementState();
+    void refreshInterfaces();
 
 private:
     Ui::TxGeneratorWindow *ui;
     Backend &_backend;
-    QTimer *_SendTimer;
-    //QTimer *sendstate_timer;
+    QTimer *_sendTimer;
+    BitMatrixWidget *_bitMatrixWidget;
 
-    QList<CanMessage> _CanMsgList;
-    //CanInterface *_intf;
+    struct CyclicMessage {
+        CanMessage msg;
+        QString name;
+        int interval;
+        bool enabled;
+        uint64_t lastSent;
+        CanInterfaceId interfaceId;
+        CanDbMessage *dbMsg;
+    };
 
-    //void hideFDFields();
-    //void showFDFields();
+    QList<CyclicMessage> _cyclicMessages;
 
-    //void reflash_can_msg(void);
+    void updateAvailableList();
+    void updateActiveList();
+    void updateRowUI(int row);
+    void populateDbcMessages();
 };
 

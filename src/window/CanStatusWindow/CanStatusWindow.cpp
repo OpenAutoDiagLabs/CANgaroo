@@ -50,6 +50,7 @@ CanStatusWindow::CanStatusWindow(QWidget *parent, Backend &backend) :
 
     connect(&backend, SIGNAL(beginMeasurement()), this, SLOT(beginMeasurement()));
     connect(&backend, SIGNAL(endMeasurement()), this, SLOT(endMeasurement()));
+    connect(&backend, SIGNAL(onClearTraceRequested()), this, SLOT(clearStatistics()));
     connect(_timer, SIGNAL(timeout()), this, SLOT(update()));
 }
 
@@ -87,6 +88,19 @@ void CanStatusWindow::endMeasurement()
     _timer->stop();
 }
 
+void CanStatusWindow::clearStatistics()
+{
+    // Reset statistics in all active interfaces
+    foreach (CanInterfaceId ifid, backend().getInterfaceList()) {
+        CanInterface *intf = backend().getInterfaceById(ifid);
+        if (intf) {
+            intf->resetStatistics();
+            intf->updateStatistics();
+        }
+    }
+    update();
+}
+
 void CanStatusWindow::update()
 {
     for (QTreeWidgetItemIterator it(ui->treeWidget); *it; ++it) {
@@ -109,4 +123,9 @@ void CanStatusWindow::update()
 Backend &CanStatusWindow::backend()
 {
     return _backend;
+}
+
+QSize CanStatusWindow::sizeHint() const
+{
+    return QSize(1200, 600);
 }

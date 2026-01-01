@@ -76,13 +76,22 @@ void AggregatedTraceViewModel::onUpdateModel()
 
     if (!_pendingMessageUpdates.isEmpty()) {
         foreach (CanMessage msg, _pendingMessageUpdates) {
-            updateItem(msg);
+            AggregatedTraceViewItem *item = _map.value(makeUniqueKey(msg));
+            if (item) {
+                updateItem(msg);
+
+                int r = item->row();
+                QModelIndex msgIdx = createIndex(r, 0, item);
+                emit dataChanged(msgIdx, msgIdx.sibling(r, column_count - 1));
+
+                if (item->childCount() > 0) {
+                    QModelIndex firstChild = index(0, 0, msgIdx);
+                    QModelIndex lastChild = index(item->childCount() - 1, column_count - 1, msgIdx);
+                    emit dataChanged(firstChild, lastChild);
+                }
+            }
         }
         _pendingMessageUpdates.clear();
-    }
-
-    if (_rootItem->childCount()>0) {
-        dataChanged(createIndex(0, 0, _rootItem->firstChild()), createIndex(_rootItem->childCount()-1, column_count-1, _rootItem->lastChild()));
     }
 
 }

@@ -26,6 +26,7 @@
 #include <QMdiArea>
 #include <QSignalMapper>
 #include <QCloseEvent>
+#include <QTimer>
 #include <QDomDocument>
 #include <QPalette>
 
@@ -68,7 +69,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionTransmit_View, SIGNAL(triggered()), this, SLOT(addRawTxWidget()));
 
     connect(ui->actionStart_Measurement, SIGNAL(triggered()), this, SLOT(startMeasurement()));
+    connect(ui->btnStartMeasurement, SIGNAL(released()), this, SLOT(startMeasurement()));
     connect(ui->actionStop_Measurement, SIGNAL(triggered()), this, SLOT(stopMeasurement()));
+    connect(ui->btnStopMeasurement, SIGNAL(released()), this, SLOT(stopMeasurement()));
+    connect(ui->btnSetupMeasurement, SIGNAL(released()), this, SLOT(showSetupDialog()));
 
     connect(&backend(), SIGNAL(beginMeasurement()), this, SLOT(updateMeasurementActions()));
     connect(&backend(), SIGNAL(endMeasurement()), this, SLOT(updateMeasurementActions()));
@@ -94,6 +98,45 @@ MainWindow::MainWindow(QWidget *parent) :
     _setupDlg = new SetupDialog(Backend::instance(), 0);
 
     _showSetupDialog_first = false;
+
+    setStyleSheet(
+        "QMainWindow::separator {"
+        "  background: transparent;"
+        "  width: 6px;"
+        "  height: 6px;"
+        "}"
+        "QMainWindow::separator:hover {"
+        "  background: #0078d7;"
+        "}"
+        "QSplitter::handle {"
+        "  background: transparent;"
+        "  width: 6px;"
+        "  height: 6px;"
+        "}"
+        "QSplitter::handle:hover {"
+        "  background: #0078d7;"
+        "}"
+        "QPushButton#btnStartMeasurement {"
+        "  background-color: #28a745;"
+        "  color: white;"
+        "  border-radius: 12px;"
+        "  padding: 5px 15px;"
+        "  font-weight: bold;"
+        "}"
+        "QPushButton#btnStartMeasurement:disabled {"
+        "  background-color: #94d3a2;"
+        "}"
+        "QPushButton#btnStopMeasurement {"
+        "  background-color: #dc3545;"
+        "  color: white;"
+        "  border-radius: 12px;"
+        "  padding: 5px 15px;"
+        "  font-weight: bold;"
+        "}"
+        "QPushButton#btnStopMeasurement:disabled {"
+        "  background-color: #f1aeb5;"
+        "}"
+    );
 }
 
 MainWindow::~MainWindow()
@@ -107,6 +150,10 @@ void MainWindow::updateMeasurementActions()
     ui->actionStart_Measurement->setEnabled(!running);
     ui->actionSetup->setEnabled(!running);
     ui->actionStop_Measurement->setEnabled(running);
+
+    ui->btnStartMeasurement->setEnabled(!running);
+    ui->btnSetupMeasurement->setEnabled(!running);
+    ui->btnStopMeasurement->setEnabled(running);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -114,6 +161,13 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (askSaveBecauseWorkspaceModified()!=QMessageBox::Cancel)
     {
         backend().stopMeasurement();
+        
+        // Auto-save to the current workspace file if one is set
+        if (!_workspaceFileName.isEmpty())
+        {
+            saveWorkspaceToFile(_workspaceFileName);
+        }
+        
         event->accept();
     }
     else
@@ -165,7 +219,11 @@ void MainWindow::stopAndClearMeasurement()
 
 void MainWindow::clearWorkspace()
 {
-    ui->mainTabs->clear();
+    while (ui->mainTabs->count() > 0) {
+        QWidget *w = ui->mainTabs->widget(0);
+        ui->mainTabs->removeTab(0);
+        delete w;
+    }
     _workspaceFileName.clear();
     setWorkspaceModified(false);
 }
@@ -234,7 +292,14 @@ void MainWindow::loadWorkspaceFromFile(QString filename)
     stopAndClearMeasurement();
     clearWorkspace();
 
-    QDomElement tabsRoot = doc.firstChild().firstChildElement("tabs");
+    QDomElement root = doc.documentElement();
+    if (root.tagName() != "cangaroo-workspace")
+    {
+        log_error(QString("Invalid workspace file format: %1").arg(filename));
+        return;
+    }
+
+    QDomElement tabsRoot = root.firstChildElement("tabs");
     QDomNodeList tabs = tabsRoot.elementsByTagName("tab");
     for (int i=0; i<tabs.length(); i++)
     {
@@ -245,16 +310,21 @@ void MainWindow::loadWorkspaceFromFile(QString filename)
         }
     }
 
-    QDomElement setupRoot = doc.firstChild().firstChildElement("setup");
+    QDomElement setupRoot = root.firstChildElement("setup");
     if (loadWorkspaceSetup(setupRoot))
     {
         _workspaceFileName = filename;
-        setWorkspaceModified(false);
     }
     else
     {
         log_error(QString("Unable to read measurement setup from workspace config file: %1").arg(filename));
     }
+
+    if (ui->mainTabs->count() > 0)
+    {
+        ui->mainTabs->setCurrentIndex(0);
+    }
+    setWorkspaceModified(false);
 }
 
 bool MainWindow::saveWorkspaceToFile(QString filename)
@@ -317,6 +387,10 @@ void MainWindow::newWorkspace()
         clearWorkspace();
         createTraceWindow();
         backend().setDefaultSetup();
+        
+        // Clear the workspace filename for a fresh start
+        _workspaceFileName.clear();
+        setWorkspaceModified(false);
     }
 }
 
@@ -349,6 +423,11 @@ bool MainWindow::saveWorkspaceAs()
     QString filename = QFileDialog::getSaveFileName(this, tr("Save workspace configuration"), "", tr("Workspace config files (*.cangaroo)"));
     if (!filename.isNull())
     {
+        // Ensure the filename has .cangaroo extension
+        if (!filename.endsWith(".cangaroo", Qt::CaseInsensitive))
+        {
+            filename += ".cangaroo";
+        }
         return saveWorkspaceToFile(filename);
     }
     else
@@ -421,11 +500,33 @@ QMainWindow *MainWindow::createTraceWindow(QString title)
     QDockWidget *dockRawTxWidget = addRawTxWidget(mm);
     QDockWidget *dockGeneratorWidget = addTxGeneratorWidget(mm);
 
+    TxGeneratorWindow *gen = qobject_cast<TxGeneratorWindow*>(dockGeneratorWidget->widget());
+    RawTxWindow *rawtx = qobject_cast<RawTxWindow*>(dockRawTxWidget->widget());
+    if (gen && rawtx) {
+        connect(gen, &TxGeneratorWindow::messageSelected, rawtx, &RawTxWindow::setMessage);
+        connect(rawtx, &RawTxWindow::messageUpdated, gen, &TxGeneratorWindow::updateMessage);
+    }
+
+
+
     mm->splitDockWidget(dockRawTxWidget,dockLogWidget,Qt::Horizontal);
     mm->splitDockWidget(dockGeneratorWidget,dockLogWidget,Qt::Horizontal);
-    mm->tabifyDockWidget(dockGeneratorWidget,dockRawTxWidget);
+    mm->tabifyDockWidget(dockGeneratorWidget, dockRawTxWidget); // Generator first, Message next
     mm->splitDockWidget(dockStatusWidget,dockLogWidget,Qt::Horizontal);
-    mm->tabifyDockWidget(dockStatusWidget,dockLogWidget);
+    mm->tabifyDockWidget(dockStatusWidget, dockLogWidget); // Status first, Log next
+    
+    
+    // Use QTimer to resize docks and ensure correct focus/visibility after layout is complete
+    QTimer::singleShot(0, mm, [mm, dockLogWidget, dockRawTxWidget, dockGeneratorWidget, dockStatusWidget]() {
+        dockStatusWidget->show();
+        dockStatusWidget->raise();
+        dockGeneratorWidget->show();
+        dockGeneratorWidget->raise();
+        
+        mm->resizeDocks({dockLogWidget, dockRawTxWidget, dockGeneratorWidget, dockStatusWidget}, {600, 600, 600, 600}, Qt::Vertical);
+        mm->resizeDocks({dockLogWidget, dockRawTxWidget, dockGeneratorWidget, dockStatusWidget}, {1200, 1200, 1200, 1200}, Qt::Horizontal);
+    });
+
     ui->mainTabs->setCurrentWidget(mm);
     return mm;
 }
@@ -460,9 +561,17 @@ QDockWidget *MainWindow::addRawTxWidget(QMainWindow *parent)
     {
         parent = currentTab();
     }
-    QDockWidget *dock = new QDockWidget(tr("Transmit View"), parent);
-    dock->setWidget(new RawTxWindow(dock, backend()));
+    QDockWidget *dock = new QDockWidget(tr("Message View"), parent);
+    RawTxWindow *rawTx = new RawTxWindow(dock, backend());
+    dock->setWidget(rawTx);
     parent->addDockWidget(Qt::BottomDockWidgetArea, dock);
+
+    TxGeneratorWindow *gen = parent->findChild<TxGeneratorWindow*>();
+    if (gen) {
+        connect(gen, &TxGeneratorWindow::messageSelected, rawTx, &RawTxWindow::setMessage);
+        connect(rawTx, &RawTxWindow::messageUpdated, gen, &TxGeneratorWindow::updateMessage);
+    }
+
     return dock;
 }
 
@@ -497,8 +606,16 @@ QDockWidget *MainWindow::addTxGeneratorWidget(QMainWindow *parent)
         parent = currentTab();
     }
     QDockWidget *dock = new QDockWidget(tr("Generator View"), parent);
-    dock->setWidget(new TxGeneratorWindow(dock, backend()));
+    TxGeneratorWindow *gen = new TxGeneratorWindow(dock, backend());
+    dock->setWidget(gen);
     parent->addDockWidget(Qt::BottomDockWidgetArea, dock);
+
+    RawTxWindow *rawtx = parent->findChild<RawTxWindow*>();
+    if (rawtx) {
+        connect(gen, &TxGeneratorWindow::messageSelected, rawtx, &RawTxWindow::setMessage);
+        connect(rawtx, &RawTxWindow::messageUpdated, gen, &TxGeneratorWindow::updateMessage);
+    }
+
     return dock;
 }
 
@@ -542,12 +659,10 @@ void MainWindow::showAboutDialog()
        "CANgaroo\n"
        "Open Source CAN bus analyzer\n"
        "\n"
-       "version 0.3.0\n"
+       "version 0.4.0\n"
        "\n"
        "(c)2015-2017 Hubert Denkmair\n"
-       "(c)2018-2022 Ethan Zonca\n"
-       "(c)2024 WeAct Studio\n"
-       "(c)2024 Schildkroet"
+       "(c)2026 Jayachandran Dharuman"
     );
 }
 
@@ -555,12 +670,9 @@ void MainWindow::startMeasurement()
 {
     if(!_showSetupDialog_first)
     {
-        if (showSetupDialog())
-        {
-            backend().clearTrace();
-            backend().startMeasurement();
-            _showSetupDialog_first = true;
-        }
+        backend().clearTrace();
+        backend().startMeasurement();
+        _showSetupDialog_first = true;
     }
     else
     {

@@ -78,6 +78,7 @@ public:
     virtual bool readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms) = 0;
 
     virtual bool updateStatistics();
+    virtual void resetStatistics() {}
     virtual uint32_t getState() = 0;
     virtual int getNumRxFrames() = 0;
     virtual int getNumRxErrors() = 0;

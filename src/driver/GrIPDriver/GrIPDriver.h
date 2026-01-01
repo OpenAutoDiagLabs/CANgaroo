@@ -1,6 +1,6 @@
 /*
 
-  Copyright (c) 2024 Schildkroet
+  Copyright (c) 2026 Jayachandran Dharuman
 
   This file is part of CANgaroo.
 

@@ -149,6 +149,7 @@ void Backend::loadDefaultSetup(MeasurementSetup &setup)
 void Backend::setDefaultSetup()
 {
     loadDefaultSetup(_setup);
+    emit onSetupChanged();
 }
 
 MeasurementSetup &Backend::getSetup()
@@ -174,6 +175,7 @@ CanTrace *Backend::getTrace()
 void Backend::clearTrace()
 {
     _trace->clear();
+    emit onClearTraceRequested();
 }
 
 CanDbMessage *Backend::findDbMessage(const CanMessage &msg) const

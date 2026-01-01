@@ -79,6 +79,7 @@ public:
     virtual bool readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms);
 
     virtual bool updateStatistics();
+    virtual void resetStatistics();
     virtual uint32_t getState();
     virtual int getNumRxFrames();
     virtual int getNumRxErrors();
@@ -105,6 +106,7 @@ private:
 
     can_config_t _config;
     can_status_t _status;
+    can_status_t _offset_stats;
     ts_mode_t _ts_mode;
 
     const char *cname();

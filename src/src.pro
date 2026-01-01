@@ -49,6 +49,7 @@ include($$PWD/window/TxGeneratorWindow/TxGeneratorWindow.pri)
 
 unix:PKGCONFIG += libnl-3.0
 unix:PKGCONFIG += libnl-route-3.0
+unix:INCLUDEPATH += /usr/include/libnl3
 unix:include($$PWD/driver/SocketCanDriver/SocketCanDriver.pri)
 
 include($$PWD/driver/CANBlastDriver/CANBlastDriver.pri)

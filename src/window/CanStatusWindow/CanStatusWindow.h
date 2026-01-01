@@ -60,6 +60,7 @@ private slots:
     void beginMeasurement();
     void endMeasurement();
     void update();
+    void clearStatistics();
 
 private:
     Ui::CanStatusWindow *ui;
@@ -67,4 +68,6 @@ private:
 
     Backend &backend();
     QTimer *_timer;
+
+    virtual QSize sizeHint() const override;
 };
