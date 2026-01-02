@@ -44,7 +44,7 @@ Backend::Backend()
     _logModel = new LogModel(*this);
 
     setDefaultSetup();
-    _trace = new CanTrace(*this, this, 100);
+    _trace = new CanTrace(*this, this, 1);
 
     connect(&_setup, SIGNAL(onSetupChanged()), this, SIGNAL(onSetupChanged()));
 }
@@ -70,7 +70,7 @@ void Backend::addCanDriver(CanDriver &driver)
 
 bool Backend::startMeasurement()
 {
-    log_info("Starting measurement");
+    log_info(tr("Starting measurement"));
 
     _measurementStartTime = QDateTime::currentMSecsSinceEpoch();
     _timerSinceStart.start();
@@ -84,9 +84,7 @@ bool Backend::startMeasurement()
             if (intf) {
                 intf->applyConfig(*mi);
 
-                log_info(QString("Listening on interface: %1").arg(intf->getName()));
-                intf->open();
-
+                log_info(QString(tr("Listening on interface: %1")).arg(intf->getName()));
                 CanListener *listener = new CanListener(0, *this, *intf);
                 listener->startThread();
                 _listeners.append(listener);
@@ -107,15 +105,14 @@ bool Backend::stopMeasurement()
         }
 
         foreach (CanListener *listener, _listeners) {
+            log_info(QString(tr("Closing interface: %1")).arg(getInterfaceName(listener->getInterfaceId())));
             listener->waitFinish();
-            log_info(QString("Closing interface: %1").arg(getInterfaceName(listener->getInterfaceId())));
-            listener->getInterface().close();
         }
 
         qDeleteAll(_listeners);
         _listeners.clear();
 
-        log_info("Measurement stopped");
+        log_info(tr("Measurement stopped"));
 
         _measurementRunning = false;
 
@@ -138,11 +135,12 @@ void Backend::loadDefaultSetup(MeasurementSetup &setup)
         driver->update();
         foreach (CanInterfaceId intf, driver->getInterfaceIds()) {
             MeasurementNetwork *network = setup.createNetwork();
-            network->setName(QString().sprintf("Network %d", i++));
+            network->setName(tr("Network ") + QString("%1").arg(i++));
 
             MeasurementInterface *mi = new MeasurementInterface();
             mi->setCanInterface(intf);
             mi->setBitrate(500000);
+            mi->setFdBitrate(2000000);
             network->addInterface(mi);
         }
     }
@@ -151,6 +149,7 @@ void Backend::loadDefaultSetup(MeasurementSetup &setup)
 void Backend::setDefaultSetup()
 {
     loadDefaultSetup(_setup);
+    emit onSetupChanged();
 }
 
 MeasurementSetup &Backend::getSetup()
@@ -176,6 +175,7 @@ CanTrace *Backend::getTrace()
 void Backend::clearTrace()
 {
     _trace->clear();
+    emit onClearTraceRequested();
 }
 
 CanDbMessage *Backend::findDbMessage(const CanMessage &msg) const

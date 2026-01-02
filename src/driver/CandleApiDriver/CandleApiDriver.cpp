@@ -39,6 +39,8 @@ QString CandleApiDriver::getName()
 
 bool CandleApiDriver::update()
 {
+    deleteAllInterfaces();
+
     candle_list_handle clist;
     uint8_t num_interfaces;
     candle_handle dev;

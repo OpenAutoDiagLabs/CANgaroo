@@ -24,7 +24,7 @@
 #include <QList>
 
 CanInterface::CanInterface(CanDriver *driver)
-  : _id(-1), _driver(driver)
+  :QObject(0), _id(-1), _driver(driver)
 {
 }
 
@@ -67,6 +67,11 @@ void CanInterface::open() {
 void CanInterface::close() {
 }
 
+bool CanInterface::isOpen()
+{
+    return false;
+}
+
 bool CanInterface::updateStatistics()
 {
     return false;
@@ -75,12 +80,14 @@ bool CanInterface::updateStatistics()
 QString CanInterface::getStateText()
 {
     switch (getState()) {
-        case state_ok: return "ok";
-        case state_warning: return "warning";
-        case state_passive: return "error passive";
-        case state_bus_off: return "bus off";
-        case state_stopped: return "stopped";
-        case state_unknown: return "unknown";
+    case state_ok: return tr("ready");
+    case state_warning: return tr("warning");
+    case state_passive: return tr("error passive");
+    case state_bus_off: return tr("bus off");
+    case state_stopped: return tr("stopped");
+    case state_unknown: return tr("unknown");
+    case state_tx_success: return tr("tx success");
+    case state_tx_fail: return tr("tx fail");
         default: return "";
     }
 }
@@ -93,4 +100,9 @@ CanInterfaceId CanInterface::getId() const
 void CanInterface::setId(CanInterfaceId id)
 {
     _id = id;
+}
+
+QString CanInterface::getVersion()
+{
+    return "UnKnown";
 }

@@ -22,7 +22,7 @@
 #pragma once
 
 #include <QFile>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QList>
 #include <qstringlist.h>
 

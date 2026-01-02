@@ -1,13 +1,21 @@
-lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5")
+lessThan(QT_MAJOR_VERSION, 6): error("requires Qt 6")
 
 QT += core gui
 QT += widgets
 QT += xml
+QT += charts
+QT += serialport
 
 TARGET = cangaroo
 TEMPLATE = app
 CONFIG += warn_on
 CONFIG += link_pkgconfig
+
+TRANSLATIONS = \
+    translations/cangaroo_de_DE.ts \
+    translations/i18n_en_us.ts \
+    translations/i18n_zh_cn.ts
+RC_ICONS = cangaroo.ico
 
 DESTDIR = ../bin
 MOC_DIR = ../build/moc
@@ -19,9 +27,9 @@ macx:OBJECTS_DIR = ../build/o/mac
 
 
 SOURCES += main.cpp\
-    mainwindow.cpp \
+    mainwindow.cpp
 
-HEADERS  += mainwindow.h \
+HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui
 
@@ -35,10 +43,19 @@ include($$PWD/window/SetupDialog/SetupDialog.pri)
 include($$PWD/window/LogWindow/LogWindow.pri)
 include($$PWD/window/GraphWindow/GraphWindow.pri)
 include($$PWD/window/CanStatusWindow/CanStatusWindow.pri)
+include($$PWD/window/RawTxWindow/RawTxWindow.pri)
+include($$PWD/window/TxGeneratorWindow/TxGeneratorWindow.pri)
+
 
 unix:PKGCONFIG += libnl-3.0
 unix:PKGCONFIG += libnl-route-3.0
+unix:INCLUDEPATH += /usr/include/libnl3
 unix:include($$PWD/driver/SocketCanDriver/SocketCanDriver.pri)
 
-win32:include($$PWD/driver/PeakCanDriver/PeakCanDriver.pri)
+include($$PWD/driver/CANBlastDriver/CANBlastDriver.pri)
+include($$PWD/driver/SLCANDriver/SLCANDriver.pri)
+include($$PWD/driver/GrIPDriver/GrIPDriver.pri)
+
 win32:include($$PWD/driver/CandleApiDriver/CandleApiDriver.pri)
+
+DISTFILES +=

@@ -56,9 +56,11 @@ protected:
 public slots:
     QMainWindow *createTraceWindow(QString title=QString());
     QMainWindow *createGraphWindow(QString title=QString());
-
-    void addLogWidget(QMainWindow *parent=0);
-    void addStatusWidget(QMainWindow *parent=0);
+    void addGraphWidget(QMainWindow *parent=0);
+    QDockWidget *addRawTxWidget(QMainWindow *parent=0);
+    QDockWidget *addLogWidget(QMainWindow *parent=0);
+    QDockWidget *addStatusWidget(QMainWindow *parent=0);
+    QDockWidget *addTxGeneratorWidget(QMainWindow *parent=0);
 
     bool showSetupDialog();
     void showAboutDialog();
@@ -75,8 +77,8 @@ private slots:
     void on_action_WorkspaceSave_triggered();
     void on_action_WorkspaceSaveAs_triggered();
     void on_action_TraceClear_triggered();
-
     void on_actionCan_Status_View_triggered();
+    void on_actionGenerator_View_triggered();
 
 private:
     Ui::MainWindow *ui;
@@ -90,6 +92,8 @@ private:
 
     QMainWindow *createTab(QString title);
     QMainWindow *currentTab();
+
+    bool _showSetupDialog_first;
 
     void stopAndClearMeasurement();
 

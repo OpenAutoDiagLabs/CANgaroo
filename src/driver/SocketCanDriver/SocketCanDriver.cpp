@@ -49,6 +49,8 @@ SocketCanDriver::~SocketCanDriver() {
 
 bool SocketCanDriver::update() {
 
+    deleteAllInterfaces();
+
     struct nl_sock *sock = nl_socket_alloc();
     struct nl_cache *cache;
 

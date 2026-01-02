@@ -55,7 +55,11 @@ class CanDb
 
         CanDbNode *getOrCreateNode(QString node_name);
 
+        size_t getNumberOfMessages();
+
         CanDbMessage *getMessageById(uint32_t raw_id);
+        CanDbMessageList getMessageList();
+
         void addMessage(CanDbMessage *msg);
 
         QString getComment() const;

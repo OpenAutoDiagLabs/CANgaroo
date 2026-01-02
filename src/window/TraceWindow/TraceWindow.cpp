@@ -26,11 +26,17 @@
 #include <QSortFilterProxyModel>
 #include "LinearTraceViewModel.h"
 #include "AggregatedTraceViewModel.h"
+#include "TraceFilterModel.h"
+#include <core/Backend.h>
+
 
 TraceWindow::TraceWindow(QWidget *parent, Backend &backend) :
     ConfigurableWidget(parent),
     ui(new Ui::TraceWindow),
-    _backend(&backend)
+    _backend(&backend),
+    _mode(mode_linear),
+    _doAutoScroll(false),
+    _timestampMode(timestamp_mode_absolute)
 {
     ui->setupUi(this);
 
@@ -44,30 +50,49 @@ TraceWindow::TraceWindow(QWidget *parent, Backend &backend) :
     _aggregatedProxyModel->setSourceModel(_aggregatedTraceViewModel);
     _aggregatedProxyModel->setDynamicSortFilter(true);
 
-    setMode(mode_linear);
+    _aggFilteredModel = new TraceFilterModel(this);
+    _aggFilteredModel->setSourceModel(_aggregatedProxyModel);
+    _linFilteredModel = new TraceFilterModel(this);
+    _linFilteredModel->setSourceModel(_linearProxyModel);
+
+    setMode(mode_aggregated);
     setAutoScroll(false);
 
     QFont font("Monospace");
     font.setStyleHint(QFont::TypeWriter);
     ui->tree->setFont(font);
+    ui->tree->setAlternatingRowColors(true);
 
     ui->tree->setUniformRowHeights(true);
-    ui->tree->setColumnWidth(0, 120);
-    ui->tree->setColumnWidth(1, 70);
-    ui->tree->setColumnWidth(2, 50);
-    ui->tree->setColumnWidth(3, 90);
-    ui->tree->setColumnWidth(4, 200);
-    ui->tree->setColumnWidth(5, 50);
-    ui->tree->setColumnWidth(6, 200);
-    ui->tree->sortByColumn(BaseTraceViewModel::column_canid, Qt::AscendingOrder);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_index, 70);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_timestamp, 100);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_channel, 120);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_direction, 50);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_type, 80);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_canid, 110);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_sender, 150);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_name, 150);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_dlc, 50);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_data, 250);
+    ui->tree->setColumnWidth(BaseTraceViewModel::column_comment, 120);
+    ui->tree->sortByColumn(BaseTraceViewModel::column_index, Qt::AscendingOrder);
 
-    ui->cbTimestampMode->addItem("absolute", 0);
-    ui->cbTimestampMode->addItem("relative", 1);
-    ui->cbTimestampMode->addItem("delta", 2);
-    setTimestampMode(timestamp_mode_relative);
+    ui->cbTimestampMode->addItem(tr("Absolute"), 0);
+    ui->cbTimestampMode->addItem(tr("Relative"), 1);
+    ui->cbTimestampMode->addItem(tr("Delta"), 2);
+    setTimestampMode(timestamp_mode_delta);
 
     connect(_linearTraceViewModel, SIGNAL(rowsInserted(QModelIndex,int,int)), this, SLOT(rowsInserted(QModelIndex,int,int)));
 
+    connect(ui->filterLineEdit, SIGNAL(textChanged(QString)), this, SLOT(on_cbFilterChanged()));
+
+    connect(ui->TraceClearpushButton, SIGNAL(released()), this, SLOT(on_cbTraceClearpushButton()));
+
+    connect(ui->cbAggregated,SIGNAL(stateChanged(int)),this,SLOT(on_cbAggregated_stateChanged(int)));
+    connect(ui->cbAutoScroll,SIGNAL(stateChanged(int)),this,SLOT(on_cbAutoScroll_stateChanged(int)));
+
+    ui->cbAggregated->setCheckState(Qt::Unchecked);
+    ui->cbAutoScroll->setCheckState(Qt::Checked);
 }
 
 TraceWindow::~TraceWindow()
@@ -82,17 +107,25 @@ void TraceWindow::setMode(TraceWindow::mode_t mode)
     bool isChanged = (_mode != mode);
     _mode = mode;
 
-    if (_mode==mode_linear) {
+    if (_mode==mode_linear)
+    {
         ui->tree->setSortingEnabled(false);
-        ui->tree->setModel(_linearTraceViewModel);
+        ui->tree->setModel(_linFilteredModel); //_linearTraceViewModel);
         ui->cbAutoScroll->setEnabled(true);
-    } else {
+        ui->tree->sortByColumn(BaseTraceViewModel::column_index, Qt::AscendingOrder);
+    }
+    else
+    {
         ui->tree->setSortingEnabled(true);
-        ui->tree->setModel(_aggregatedProxyModel);
+        ui->tree->setModel(_aggFilteredModel); //_aggregatedProxyModel);
         ui->cbAutoScroll->setEnabled(false);
+        ui->tree->sortByColumn(BaseTraceViewModel::column_canid, Qt::AscendingOrder);
     }
 
-    if (isChanged) {
+    ui->tree->scrollToBottom();
+
+    if (isChanged)
+    {
         ui->cbAggregated->setChecked(_mode==mode_aggregated);
         emit(settingsChanged(this));
     }
@@ -100,7 +133,8 @@ void TraceWindow::setMode(TraceWindow::mode_t mode)
 
 void TraceWindow::setAutoScroll(bool doAutoScroll)
 {
-    if (doAutoScroll != _doAutoScroll) {
+    if (doAutoScroll != _doAutoScroll)
+    {
         _doAutoScroll = doAutoScroll;
         ui->cbAutoScroll->setChecked(_doAutoScroll);
         emit(settingsChanged(this));
@@ -110,19 +144,25 @@ void TraceWindow::setAutoScroll(bool doAutoScroll)
 void TraceWindow::setTimestampMode(int mode)
 {
     timestamp_mode_t new_mode;
-    if ( (mode>=0) && (mode<timestamp_modes_count) ) {
+    if ( (mode>=0) && (mode<timestamp_modes_count) )
+    {
         new_mode = (timestamp_mode_t) mode;
-    } else {
+    }
+    else
+    {
         new_mode = timestamp_mode_absolute;
     }
 
     _aggregatedTraceViewModel->setTimestampMode(new_mode);
     _linearTraceViewModel->setTimestampMode(new_mode);
 
-    if (new_mode != _timestampMode) {
+    if (new_mode != _timestampMode)
+    {
         _timestampMode = new_mode;
-        for (int i=0; i<ui->cbTimestampMode->count(); i++) {
-            if (ui->cbTimestampMode->itemData(i).toInt() == new_mode) {
+        for (int i=0; i<ui->cbTimestampMode->count(); i++)
+        {
+            if (ui->cbTimestampMode->itemData(i).toInt() == new_mode)
+            {
                 ui->cbTimestampMode->setCurrentIndex(i);
             }
         }
@@ -132,7 +172,8 @@ void TraceWindow::setTimestampMode(int mode)
 
 bool TraceWindow::saveXML(Backend &backend, QDomDocument &xml, QDomElement &root)
 {
-    if (!ConfigurableWidget::saveXML(backend, xml, root)) {
+    if (!ConfigurableWidget::saveXML(backend, xml, root))
+    {
         return false;
     }
 
@@ -153,7 +194,8 @@ bool TraceWindow::saveXML(Backend &backend, QDomDocument &xml, QDomElement &root
 
 bool TraceWindow::loadXML(Backend &backend, QDomElement &el)
 {
-    if (!ConfigurableWidget::loadXML(backend, el)) {
+    if (!ConfigurableWidget::loadXML(backend, el))
+    {
         return false;
     }
 
@@ -165,7 +207,8 @@ bool TraceWindow::loadXML(Backend &backend, QDomElement &el)
 
     QDomElement elAggregated = el.firstChildElement("AggregatedTraceView");
     int sortColumn = elAggregated.attribute("SortColumn", "-1").toInt();
-    ui->tree->sortByColumn(sortColumn);
+    ui->tree->sortByColumn(sortColumn,Qt::SortOrder::AscendingOrder);
+    //ui->tree->sortByColumn(sortColumn);
 
     return true;
 }
@@ -176,10 +219,15 @@ void TraceWindow::rowsInserted(const QModelIndex &parent, int first, int last)
     (void) first;
     (void) last;
 
-    if ((_mode==mode_linear) && (ui->cbAutoScroll->checkState() == Qt::Checked)) {
-        ui->tree->scrollToBottom();
+    if(_backend->getTrace()->size() > 1000000)
+    {
+        _backend->clearTrace();
     }
 
+    if ((_mode==mode_linear) && (ui->cbAutoScroll->checkState() == Qt::Checked))
+    {
+        ui->tree->scrollToBottom();
+    }
 }
 
 void TraceWindow::on_cbAggregated_stateChanged(int i)
@@ -195,4 +243,18 @@ void TraceWindow::on_cbAutoScroll_stateChanged(int i)
 void TraceWindow::on_cbTimestampMode_currentIndexChanged(int index)
 {
     setTimestampMode((timestamp_mode_t)ui->cbTimestampMode->itemData(index).toInt());
+}
+
+void TraceWindow::on_cbFilterChanged()
+{
+    _aggFilteredModel->setFilterText(ui->filterLineEdit->text());
+    _linFilteredModel->setFilterText(ui->filterLineEdit->text());
+    _aggFilteredModel->invalidate();
+    _linFilteredModel->invalidate();
+}
+
+void TraceWindow::on_cbTraceClearpushButton()
+{
+    _backend->clearTrace();
+    _backend->clearLog();
 }

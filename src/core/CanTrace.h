@@ -51,7 +51,7 @@ public:
     void saveCanDump(QFile &file);
     void saveVectorAsc(QFile &file);
 
-    bool getMuxedSignalFromCache(const CanDbSignal *signal, uint32_t *raw_value);
+    bool getMuxedSignalFromCache(const CanDbSignal *signal, uint64_t *raw_value);
 
 signals:
     void messageEnqueued(int idx);
@@ -75,9 +75,9 @@ private:
     int _newRows;
     bool _isTimerRunning;
 
-    QMap<const CanDbSignal*,uint32_t> _muxCache;
+    QMap<const CanDbSignal*,uint64_t> _muxCache;
 
-    QMutex _mutex;
+    QRecursiveMutex _mutex;
     QMutex _timerMutex;
     QTimer _flushTimer;
 

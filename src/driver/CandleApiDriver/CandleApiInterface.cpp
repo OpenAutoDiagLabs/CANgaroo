@@ -12,8 +12,26 @@ CandleApiInterface::CandleApiInterface(CandleApiDriver *driver, candle_handle ha
     _numTxErr(0)
 {
     _settings.setBitrate(500000);
-    _settings.setSamplePoint(0.875);
+    _settings.setSamplePoint(875);
 
+
+
+    // Timings for 170MHz processors (CANable 2.0)
+    // Tseg1: 2..256 Tseg2: 2..128 sjw: 1..128 brp: 1..512
+    // Note: as expressed below, Tseg1 does not include 1 count for prop phase
+    _timings
+        << CandleApiTiming(170000000,   10000, 875, 68, 217, 31)
+        << CandleApiTiming(170000000,   20000, 875, 34, 217, 31)
+        << CandleApiTiming(170000000,   50000, 875, 17, 173, 25)
+        << CandleApiTiming(170000000,   83333, 875,  8, 221, 32)
+        << CandleApiTiming(170000000,  100000, 875, 10, 147, 21)
+        << CandleApiTiming(170000000,  125000, 875, 8,  147, 21)
+        << CandleApiTiming(170000000,  250000, 875, 4,  147, 21)
+        << CandleApiTiming(170000000,  500000, 875, 2,  147, 21)
+        << CandleApiTiming(170000000, 1000000, 875, 1,  147, 21);
+
+
+    // Timings for 48MHz processors (CANable 0.X)
     _timings
         // sample point: 50.0%
         << CandleApiTiming(48000000,   10000, 500, 300, 6, 8)
@@ -206,11 +224,13 @@ void CandleApiInterface::open()
 {
     if (!candle_dev_open(_handle)) {
         // TODO what?
+        _isOpen = false;
         return;
     }
 
     if (!setBitTiming(_settings.bitrate(), _settings.samplePoint())) {
         // TODO what?
+        _isOpen = false;
         return;
     }
 
@@ -238,12 +258,19 @@ void CandleApiInterface::open()
     }
 
     candle_channel_start(_handle, 0, flags);
+    _isOpen = true;
+}
+
+bool CandleApiInterface::isOpen()
+{
+    return _isOpen;
 }
 
 void CandleApiInterface::close()
 {
     candle_channel_stop(_handle, 0);
     candle_dev_close(_handle);
+    _isOpen = false;
 }
 
 void CandleApiInterface::sendMessage(const CanMessage &msg)
@@ -270,9 +297,10 @@ void CandleApiInterface::sendMessage(const CanMessage &msg)
     }
 }
 
-bool CandleApiInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
+bool CandleApiInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms)
 {
     candle_frame_t frame;
+    CanMessage msg;
 
     if (candle_frame_read(_handle, &frame, timeout_ms)) {
 
@@ -301,7 +329,7 @@ bool CandleApiInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
             }
 
             msg.setTimestamp(ts_us/1000000, ts_us % 1000000);
-
+            msglist.append(msg);
             return true;
         }
 

@@ -56,11 +56,11 @@ QVariant SetupDialogTreeModel::headerData(int section, Qt::Orientation orientati
 
     if (role==Qt::DisplayRole) {
         switch (section) {
-            case column_device: return "Device";
-            case column_driver: return "Driver";
-            case column_bitrate: return "Bitrate";
-            case column_filename: return "Filename";
-            case column_path: return "Path";
+        case column_device: return tr("Device");
+        case column_driver: return tr("Driver");
+        case column_bitrate: return tr("Bitrate");
+        case column_filename: return tr("Filename");
+        case column_path: return tr("Path");
             default: return "";
         }
     } else {
@@ -117,7 +117,7 @@ SetupDialogTreeItem *SetupDialogTreeModel::addNetwork()
     QString s;
     int i=0;
     while (true) {
-        s = QString("Network %1").arg(++i);
+        s = tr("Network ") + QString("%1").arg(++i);
         if (_rootItem->setup->getNetworkByName(s)==0) {
             break;
         }

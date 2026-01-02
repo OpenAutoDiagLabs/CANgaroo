@@ -42,14 +42,33 @@
       <item>
        <widget class="QCheckBox" name="cbAggregated">
         <property name="text">
-         <string>aggregate by ID</string>
+         <string>Aggregate by ID</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QCheckBox" name="cbAutoScroll">
+        <property name="toolTip">
+         <string>Autoscroll</string>
+        </property>
         <property name="text">
-         <string>auto scroll</string>
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../../cangaroo.qrc">
+          <normaloff>:/assets/auto-scroll.svg</normaloff>:/assets/auto-scroll.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -60,11 +79,44 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>36</width>
           <height>20</height>
          </size>
         </property>
        </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="TraceClearpushButton">
+        <property name="text">
+         <string>Clear</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Filter: </string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="filterLineEdit">
+        <property name="maximumSize">
+         <size>
+          <width>150</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string/>
+        </property>
+        <property name="statusTip">
+         <string/>
+        </property>
+        <property name="placeholderText">
+         <string/>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -78,6 +130,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../cangaroo.qrc"/>
+ </resources>
  <connections/>
 </ui>

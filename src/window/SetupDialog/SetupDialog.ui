@@ -88,7 +88,7 @@
              <item>
               <widget class="QPushButton" name="btAddNetwork">
                <property name="text">
-                <string>Add Network...</string>
+                <string>Add Network</string>
                </property>
               </widget>
              </item>
@@ -96,6 +96,13 @@
               <widget class="QPushButton" name="btRemoveNetwork">
                <property name="text">
                 <string>Remove Network</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btRefreshNetworks">
+               <property name="text">
+                <string>Refresh</string>
                </property>
               </widget>
              </item>
@@ -112,7 +119,7 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="emptyPage"/>
          <widget class="QWidget" name="networkPage">
@@ -240,6 +247,13 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QPushButton" name="btReloadDatabases">
+                <property name="text">
+                 <string>Reload Databases</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>
@@ -258,6 +272,9 @@
      </property>
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+     <property name="centerButtons">
+      <bool>false</bool>
      </property>
     </widget>
    </item>

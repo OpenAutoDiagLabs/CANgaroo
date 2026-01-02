@@ -38,16 +38,19 @@ CanStatusWindow::CanStatusWindow(QWidget *parent, Backend &backend) :
 {
     ui->setupUi(this);
     ui->treeWidget->setHeaderLabels(QStringList()
-        << "Driver" << "Interface" << "State"
-        << "Rx Frames" << "Rx Errors" << "Rx Overrun"
-        << "Tx Frames" << "Tx Errors" << "Tx Dropped"
-        << "# Warning" << "# Passive" << "# Bus Off" << " #Restarts"
+                                    << tr("Driver") << tr("Interface") << tr("State")
+                                    << tr("Rx Frames") << tr("Rx Errors") << tr("Rx Overrun")
+                                    << tr("Tx Frames") << tr("Tx Errors") << tr("Tx Dropped")
+        // << "# Warning" << "# Passive" << "# Bus Off" << " #Restarts"
     );
-    ui->treeWidget->setColumnWidth(0, 80);
-    ui->treeWidget->setColumnWidth(1, 70);
+    // Driver width
+    ui->treeWidget->setColumnWidth(0, 100);
+    // Interface width
+    ui->treeWidget->setColumnWidth(1, 110);
 
     connect(&backend, SIGNAL(beginMeasurement()), this, SLOT(beginMeasurement()));
     connect(&backend, SIGNAL(endMeasurement()), this, SLOT(endMeasurement()));
+    connect(&backend, SIGNAL(onClearTraceRequested()), this, SLOT(clearStatistics()));
     connect(_timer, SIGNAL(timeout()), this, SLOT(update()));
 }
 
@@ -81,7 +84,21 @@ void CanStatusWindow::beginMeasurement()
 
 void CanStatusWindow::endMeasurement()
 {
+    update();
     _timer->stop();
+}
+
+void CanStatusWindow::clearStatistics()
+{
+    // Reset statistics in all active interfaces
+    foreach (CanInterfaceId ifid, backend().getInterfaceList()) {
+        CanInterface *intf = backend().getInterfaceById(ifid);
+        if (intf) {
+            intf->resetStatistics();
+            intf->updateStatistics();
+        }
+    }
+    update();
 }
 
 void CanStatusWindow::update()
@@ -106,4 +123,9 @@ void CanStatusWindow::update()
 Backend &CanStatusWindow::backend()
 {
     return _backend;
+}
+
+QSize CanStatusWindow::sizeHint() const
+{
+    return QSize(1200, 600);
 }

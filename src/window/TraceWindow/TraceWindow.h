@@ -23,17 +23,18 @@
 
 #include <core/ConfigurableWidget.h>
 #include "TraceViewTypes.h"
+#include "TraceFilterModel.h"
 
 namespace Ui {
 class TraceWindow;
 }
-
+class Backend;
 class QDomDocument;
 class QDomElement;
 class QSortFilterProxyModel;
 class LinearTraceViewModel;
 class AggregatedTraceViewModel;
-class Backend;
+
 
 class TraceWindow : public ConfigurableWidget
 {
@@ -63,6 +64,9 @@ private slots:
     void on_cbAutoScroll_stateChanged(int i);
 
     void on_cbTimestampMode_currentIndexChanged(int index);
+    void on_cbFilterChanged(void);
+
+    void on_cbTraceClearpushButton(void);
 
 private:
     Ui::TraceWindow *ui;
@@ -71,6 +75,8 @@ private:
     bool _doAutoScroll;
     timestamp_mode_t _timestampMode;
 
+    TraceFilterModel * _aggFilteredModel;
+    TraceFilterModel * _linFilteredModel;
     LinearTraceViewModel *_linearTraceViewModel;
     AggregatedTraceViewModel *_aggregatedTraceViewModel;
     QSortFilterProxyModel *_aggregatedProxyModel;

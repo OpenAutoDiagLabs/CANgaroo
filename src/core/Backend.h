@@ -93,6 +93,8 @@ signals:
 
     void onSetupChanged();
 
+    void onClearTraceRequested();
+
     void onLogMessage(const QDateTime dt, const log_level_t level, const QString msg);
 
     void onSetupDialogCreated(SetupDialog &dlg);

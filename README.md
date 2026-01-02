@@ -1,123 +1,233 @@
-# cangaroo
-open source can bus analyzer
+# ![logo](/src/cangaroo.ico) **CANgaroo**
 
-written by Hubert Denkmair <hubert@denkmair.de>
+An open-source CAN bus analyzer with support for transmit/receive of standard and FD frames and DBC decoding of incoming frames.
 
-## building on linux
-* to install all required packages in a vanilla ubuntu 16.04:
-  * sudo apt-get install build-essential git qt5-qmake qtbase5-dev libnl-3-dev libnl-route-3-dev
-* build with:
-  * qmake -qt=qt5
-  * make
-  * make install
+**Supported interfaces:**
 
-## building on windows
-* Qt Creator (Community Version is okay) brings everything you need
-* except for the PCAN libraries. 
-  * Get them from http://www.peak-system.com/fileadmin/media/files/pcan-basic.zip
-  * Extract to .zip to src/driver/PeakCanDriver/pcan-basic-api
-  * Make sure PCANBasic.dll (the one from pcan-basic-api/Win32 on a "normal" 32bit Windows build)
-    is found when running cangaroo, e.g. by putting it in the same folder as the .exe file.
-* if you don't want Peak support, you can just disable the driver:
-  remove the line "win32:include($$PWD/driver/PeakCanDriver/PeakCanDriver.pri)"
-  from src/src.pro
-* if you want to deploy the cangaroo app, make sure to also include the needed Qt Libraries.
-  for a normal release build, these are: Qt5Core.dll Qt5Gui.dll Qt5Widgets.dll Qt5Xml.dll
+* [CANable](http://canable.io) SLCAN interfaces on Windows and Linux
+* [CANable 2](http://canable.io) SLCAN interfaces on Windows and Linux with FD support
+* Candlelight interfaces on Windows
+* SocketCAN interfaces on Linux
+* [CANblaster](https://github.com/normaldotcom/canblaster) SocketCAN over UDP server with auto-discovery
+* GrIP Driver
 
-## changelog
+![demo1](/test/output.gif)
 
-### v0.2.1 unreleased
-* make logging easier
-* refactorings
-* scroll trace view per pixel, not per item (always show last message when autoscroll is on)
+Written by Hubert Denkmair [hubert@denkmair.de](mailto:hubert@denkmair.de)
 
-### v0.2.0 released 2016-01-24
-* docking windows system instead of MDI interface
-* windows build
-* windows PCAN-basic driver
-* handle muxed signals in backend and trace window
-* do not try to extract signals from messages when DLC too short
-* can status window
-* bugfixes in setup dialog
-* show timestamps, log level etc. in log window
+Further development by:
 
-### v0.1.3 released 2016-01-16
-* new can interface configuration GUI (missing a suid binary to actually set the config)
-* use libnl-route-3 for socketcan device config read
-* query socketcan interfaces for supported config options
-* new logging subsystem, do not use QDebug any more
-* some performance improvements when receiving lots of messages 
-* bugfix with time-delta view: timestamps not shown when no previous message avail
+* Jayachandran Dharuman ([https://github.com/OpenAutoDiagLabs/cangaroo](https://github.com/OpenAutoDiagLabs/cangaroo))
 
-### v0.1.2 released 2016-01-12
-* fix device re-scan ("could not bind" console message)
-* fix some dbc parsing issues (signed signals, ...)
-* implement big endian signals
+---
 
-### v0.1.1 released 2016-01-11
-* change source structure to better fit debian packaging
-* add debian packaging info
+## Building on Linux
 
-### v0.1 released 2016-01-10
-initial release \o/
+### Prerequisites (Ubuntu 24.04 and similar)
 
+To set up a new development environment, you can follow one of the methods below:
 
+**Method 1: Basic Universe Repository Setup**
 
-## todo
+```bash
+sudo add-apt-repository universe
+sudo apt update
+```
 
-### backend
-* allow for canfd frames
-* support non-message frames in traces (e.g. markers)
-* implement plugin API
-* embed python for scripting
+**Method 2: Universe Repository + Qt6 Core Packages**
 
-### can drivers
-* allow socketcan interface config through suid binary
-* socketcan: use hardware timestamps (SIOCSHWTSTAMP) if possible
-* cannelloni support
-* windows vector driver
+```bash
+sudo add-apt-repository universe
+sudo apt update
+sudo apt install qt6-base-dev qt6-charts-dev qt6-serialport-dev
+```
 
-### import / export
-* export to other file formats (e.g. Vector ASC, BLF, MDF)
-* import CAN-Traces
+**Method 3: Full Package Install (Recommended)**
 
-### general ui
-* give some style to dock windows
-* load/save docks from/to config
+```bash
+sudo apt install \
+    qt6-base-dev \
+    libqt6charts6-dev \
+    libqt6serialport6-dev \
+    build-essential git cmake \
+    libnl-3-dev libnl-route-3-dev libgl1-mesa-dev
+```
 
-### log window
-* filter log messages by level
+These commands ensure your system has all the required Qt6 libraries, CAN-related dependencies, and build tools.
 
-### can status window
-* display #warnings, #passive, #busoff, #restarts of socketcan devices
+### Build Instructions
 
-### trace window
-* message filtering
-* assign colors to can interfaces / messages
-* limit displayed number of messages
-* show error frames and other non-message frames
-* sort signals by startbit, name or position in candb
+```bash
+git clone https://github.com/OpenAutoDiagLabs/cangaroo
 
-### raw message generator
-* provide a simple way to generate raw can messages
+cd CANgaroo/src && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig qmake6 && cd .. && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig make -j$(nproc)
+```
 
-### CanDB based generator
-* generate can messages from candbs
-* set signals according to value tables etc.
-* provide generator functions for signal values
-* allow scripting of signal values
+The binary will be located in `../bin/cangaroo`.
 
-### replay window
-* replay can traces
-* map interfaces in traces to available networks
+---
 
-### graph window
-* test QCustomPlot
-* allow for graphing of interface stats, message stats and signals
+## Building on Windows
 
-### packaging / deployment
-* provide clean debian package
-* gentoo ebuild script
-* provide static linked binary
-* add windows installer
+* Qt Creator (Community Version is sufficient) brings everything you need.
+* **PCAN Libraries**:
 
+  * Download from [peak-system.com](http://www.peak-system.com/fileadmin/media/files/pcan-basic.zip)
+  * Extract to `src/driver/PeakCanDriver/pcan-basic-api`.
+  * Ensure `PCANBasic.dll` is in the same folder as the `.exe` file.
+* To disable Peak support, comment out `win32:include($$PWD/driver/PeakCanDriver/PeakCanDriver.pri)` in `src/src.pro`.
+
+---
+
+## Usage Notes
+
+### Workspace Management
+
+* **Manual Persistence**: Workspaces are now explicitly managed. Use **File -> Save Workspace As** to create a configuration file.
+* **No Hidden Cache**: The application no longer uses a hidden cache for the "last session". You must open your saved `.cangaroo` workspace file to restore your settings.
+* **Auto-Save**: If a workspace file is currently open, changes will be saved to that file when closing the application.
+
+### Log Exporting
+
+* Open the **Log View** to see the new **"Export Logs..."** button.
+* You can save the current log stream to a formatted `.log` or `.txt` file for external analysis.
+* Use the **"Clear"** button in the Log View to reset the log display at any time.
+
+---
+
+## Changelog
+
+### v0.4.0
+
+* **Explicit Workspace Persistence**: Removed unreliable hidden cache system. Workspaces are now saved directly to user-specified files.
+* **Log Export Feature**: Export logs to `.log` and `.txt` files.
+* **Layout Restoration**: Optimized dock widgets to ensure "CAN Status" and "Generator View" are always visible.
+* **Stability Improvements**: Improved memory management and null-pointer protection for DBC and XML parsing.
+* **Build Fixes**: Added explicit include paths for `libnl3` for modern Linux distributions.
+* **Version Update**: Updated versioning to 0.4.0.
+
+### v0.3.0
+
+* Migrate to Qt6
+* Added GrIP driver
+
+### v0.2.4.1
+
+* General bugfixes
+* Add WeAct Studio Support
+* Initial Translation support
+
+### v0.2.4
+
+* Add initial support for CANFD
+* Add support for SLCAN interfaces on Windows and Linux (CANable, CANable 2.0)
+* Add support for [CANblaster](https://github.com/normaldotcom/canblaster) socketCAN over UDP
+* Add live filtering of CAN messages in trace view
+
+### v0.2.1
+
+* Improved logging
+* Refactorings
+* Scroll trace view per pixel, always show last message when autoscroll is on
+
+### v0.2.0
+
+* Docking windows system instead of MDI interface
+* Windows build and PCAN-basic driver
+* Handle muxed signals in backend and trace window
+* CAN status window
+* Show timestamps, log level, etc. in log window
+
+### v0.1.3
+
+* New CAN interface configuration GUI
+* Use libnl-route-3 for socketCAN device config read
+* Query socketCAN interfaces for supported config options
+* New logging subsystem, no longer using QDebug
+* Performance improvements when receiving many messages
+* Bugfix with time-delta view
+
+### v0.1.2
+
+* Fix device re-scan
+* Fix some DBC parsing issues
+* Implement big-endian signals
+
+### v0.1.1
+
+* Change source structure for Debian packaging
+* Add Debian packaging info
+
+### v0.1
+
+* Initial release
+
+---
+
+## TODO
+
+### Backend
+
+* Support non-message frames in traces (e.g., markers)
+* Implement plugin API
+* Embed Python for scripting
+
+### CAN Drivers
+
+* Allow socketCAN interface config through suid binary
+* Hardware timestamps for socketCAN if possible
+* Cannelloni support
+* Windows Vector driver
+
+### Import / Export
+
+* Export to other formats (Vector ASC, BLF, MDF)
+* Import CAN-Traces
+
+### General UI
+
+* Style dock windows
+* Load/save docks from/to config
+
+### Log Window
+
+* Filter log messages by level
+
+### CAN Status Window
+
+* Display #warnings, #passive, #busoff, #restarts
+
+### Trace Window
+
+* Assign colors to CAN interfaces/messages
+* Limit displayed messages
+* Show error and non-message frames
+* Sort signals by startbit, name, or position in CANdb
+
+### CANdb-based Generator
+
+* Generate CAN messages from CANdbs
+* Set signals according to value tables
+* Provide generator functions for signals
+* Allow scripting of signal values
+
+### Replay Window
+
+* Replay CAN traces
+* Map interfaces in traces to available networks
+
+### Graph Window
+
+* Test QCustomPlot
+* Graph interface stats, message stats, signals
+
+### Packaging / Deployment
+
+* Provide clean Debian package
+* Flatpak support
+* Provide statically linked binary
+* Add Windows installer
+
+---
+
+This version includes your requested Linux setup steps with all three options clearly listed, while keeping the original README structure and content.

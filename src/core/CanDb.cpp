@@ -54,6 +54,11 @@ CanDbNode *CanDb::getOrCreateNode(QString node_name)
     }
 }
 
+size_t CanDb::getNumberOfMessages()
+{
+    return _messages.size();
+}
+
 CanDbMessage *CanDb::getMessageById(uint32_t raw_id)
 {
     if (_messages.contains(raw_id)) {
@@ -61,6 +66,11 @@ CanDbMessage *CanDb::getMessageById(uint32_t raw_id)
     } else {
         return 0;
     }
+}
+
+CanDbMessageList CanDb::getMessageList()
+{
+    return _messages;
 }
 
 void CanDb::addMessage(CanDbMessage *msg)

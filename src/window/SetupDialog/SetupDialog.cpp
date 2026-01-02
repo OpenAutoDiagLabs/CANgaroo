@@ -40,6 +40,7 @@ SetupDialog::SetupDialog(Backend &backend, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SetupDialog),
     _backend(&backend),
+    _isReflashNetworks(false),
     _currentNetwork(0)
 {
     ui->setupUi(this);
@@ -51,6 +52,7 @@ SetupDialog::SetupDialog(Backend &backend, QWidget *parent) :
     _actionDeleteInterface = new QAction("Delete", this);
     _actionAddCanDb = new QAction("Add...", this);
     _actionDeleteCanDb = new QAction("Delete", this);
+    _actionReloadCanDbs = new QAction("Reload", this);
 
     model = new SetupDialogTreeModel(_backend, this);
 
@@ -80,11 +82,15 @@ SetupDialog::SetupDialog(Backend &backend, QWidget *parent) :
     connect(ui->candbsTreeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(updateButtons()));
     connect(ui->interfacesTreeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(updateButtons()));
 
+    connect(ui->btReloadDatabases, SIGNAL (released()), this, SLOT(executeReloadCanDbs()));
+    connect(ui->btRefreshNetworks, SIGNAL(released()), this, SLOT(on_btRefreshNetworks_clicked()));
+
     connect(_actionAddCanDb, SIGNAL(triggered()), this, SLOT(executeAddCanDb()));
     connect(_actionDeleteCanDb, SIGNAL(triggered()), this, SLOT(executeDeleteCanDb()));
 
     connect(_actionAddInterface, SIGNAL(triggered()), this, SLOT(executeAddInterface()));
     connect(_actionDeleteInterface, SIGNAL(triggered()), this, SLOT(executeDeleteInterface()));
+
 
     emit backend.onSetupDialogCreated(*this);
 }
@@ -107,6 +113,8 @@ void SetupDialog::displayPage(QWidget *widget)
 
 bool SetupDialog::showSetupDialog(MeasurementSetup &setup)
 {
+    _isReflashNetworks = false;
+
     model->load(setup);
     ui->treeView->expandAll();
 
@@ -164,8 +172,6 @@ void SetupDialog::treeViewSelectionChanged(const QItemSelection &selected, const
             default:
                 ui->stackedWidget->setCurrentWidget(ui->emptyPage);
                 break;
-
-
         }
     }
 
@@ -209,6 +215,7 @@ void SetupDialog::treeViewContextMenu(const QPoint &pos)
                 break;
             case SetupDialogTreeItem::type_candb:
                 contextMenu.addAction(_actionDeleteCanDb);
+                contextMenu.addAction(_actionReloadCanDbs);
                 break;
             default:
                 break;
@@ -269,9 +276,22 @@ void SetupDialog::addCanDb(const QModelIndex &parent)
     }
 }
 
+void SetupDialog::reloadCanDbs(const QModelIndex &parent)
+{
+    SetupDialogTreeItem *parentItem = static_cast<SetupDialogTreeItem*>(parent.internalPointer());
+
+    parentItem->network->reloadCanDbs(_backend);
+}
+
 void SetupDialog::executeAddCanDb()
 {
     addCanDb(ui->treeView->selectionModel()->currentIndex());
+}
+
+
+void SetupDialog::executeReloadCanDbs()
+{
+    reloadCanDbs(ui->treeView->selectionModel()->currentIndex());
 }
 
 void SetupDialog::on_btAddDatabase_clicked()
@@ -292,6 +312,9 @@ void SetupDialog::on_btRemoveDatabase_clicked()
 void SetupDialog::updateButtons()
 {
     ui->btRemoveDatabase->setEnabled(ui->candbsTreeView->selectionModel()->hasSelection());
+
+//    ui->btReloadDatabases->setEnabled(ui->candbsTreeView->children.count() > 0);
+
     ui->btRemoveInterface->setEnabled(ui->interfacesTreeView->selectionModel()->hasSelection());
 
     SetupDialogTreeItem *item = getSelectedItem();
@@ -308,5 +331,17 @@ void SetupDialog::on_btAddNetwork_clicked()
 void SetupDialog::on_btRemoveNetwork_clicked()
 {
     model->deleteNetwork(getSelectedIndex());
+}
+
+void SetupDialog::on_btRefreshNetworks_clicked()
+{
+    _backend->setDefaultSetup();
+    showSetupDialog(_backend->getSetup());
+    _isReflashNetworks = true;
+}
+
+bool SetupDialog::isReflashNetworks()
+{
+    return _isReflashNetworks;
 }
 

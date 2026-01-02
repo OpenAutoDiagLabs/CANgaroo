@@ -25,11 +25,13 @@
 #include <stdint.h>
 #include "CanDriver.h"
 #include "CanTiming.h"
+#include <QObject>
 
 class CanMessage;
 class MeasurementInterface;
 
-class CanInterface {
+class CanInterface: public QObject  {
+    Q_OBJECT
 public:
     enum {
         state_ok,
@@ -37,7 +39,9 @@ public:
         state_passive,
         state_bus_off,
         state_stopped,
-        state_unknown
+        state_unknown,
+        state_tx_success,
+        state_tx_fail,
     };
 
     enum {
@@ -46,7 +50,9 @@ public:
         capability_triple_sampling = 0x04,
         capability_one_shot        = 0x08,
         capability_auto_restart    = 0x10,
-        capability_config_os       = 0x20
+        capability_config_os       = 0x20,
+        capability_custom_bitrate  = 0x40,
+        capability_custom_canfd_bitrate = 0x80
     };
 
 public:
@@ -66,10 +72,13 @@ public:
 	virtual void open();
 	virtual void close();
 
+    virtual bool isOpen();
+
     virtual void sendMessage(const CanMessage &msg) = 0;
-    virtual bool readMessage(CanMessage &msg, unsigned int timeout_ms) = 0;
+    virtual bool readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms) = 0;
 
     virtual bool updateStatistics();
+    virtual void resetStatistics() {}
     virtual uint32_t getState() = 0;
     virtual int getNumRxFrames() = 0;
     virtual int getNumRxErrors() = 0;
@@ -77,6 +86,8 @@ public:
     virtual int getNumTxErrors() = 0;
     virtual int getNumRxOverruns() = 0;
     virtual int getNumTxDropped() = 0;
+
+    virtual QString getVersion();
 
     QString getStateText();
 

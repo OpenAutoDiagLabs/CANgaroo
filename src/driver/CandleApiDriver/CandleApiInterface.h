@@ -14,6 +14,7 @@ using namespace std;
 
 class CandleApiInterface : public CanInterface
 {
+    Q_OBJECT
 public:
     CandleApiInterface(CandleApiDriver *driver, candle_handle handle);
     virtual ~CandleApiInterface();
@@ -29,10 +30,11 @@ public:
     virtual QList<CanTiming> getAvailableBitrates();
 
     virtual void open();
+    virtual bool isOpen();
     virtual void close();
 
     virtual void sendMessage(const CanMessage &msg);
-    virtual bool readMessage(CanMessage &msg, unsigned int timeout_ms);
+    virtual bool readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms);
 
     virtual bool updateStatistics();
     virtual uint32_t getState();
@@ -51,6 +53,7 @@ private:
 
     uint64_t _hostOffsetStart;
     uint32_t _deviceTicksStart;
+    bool _isOpen;
 
     candle_handle _handle;
     MeasurementInterface _settings;

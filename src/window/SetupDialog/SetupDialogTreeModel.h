@@ -58,6 +58,7 @@ public:
 
     SetupDialogTreeItem *addNetwork();
     void deleteNetwork(const QModelIndex &index);
+    int getNetworkCount();
 
     SetupDialogTreeItem *addCanDb(const QModelIndex &parent, pCanDb db);
     void deleteCanDb(const QModelIndex &index);
