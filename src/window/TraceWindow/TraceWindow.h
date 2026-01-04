@@ -50,7 +50,6 @@ public:
     ~TraceWindow();
 
     void setMode(mode_t mode);
-    void setAutoScroll(bool doAutoScroll);
     void setTimestampMode(int mode);
 
     virtual bool saveXML(Backend &backend, QDomDocument &xml, QDomElement &root);
@@ -60,8 +59,6 @@ public slots:
     void rowsInserted(const QModelIndex & parent, int first, int last);
 
 private slots:
-    void on_cbAggregated_stateChanged(int i);
-    void on_cbAutoScroll_stateChanged(int i);
 
     void on_cbTimestampMode_currentIndexChanged(int index);
     void on_cbFilterChanged(void);
@@ -72,7 +69,6 @@ private:
     Ui::TraceWindow *ui;
     Backend *_backend;
     mode_t _mode;
-    bool _doAutoScroll;
     timestamp_mode_t _timestampMode;
 
     TraceFilterModel * _aggFilteredModel;

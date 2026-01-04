@@ -186,7 +186,7 @@ bool SocketCanInterface::updateStatus()
     bool retval = false;
 
     struct nl_sock *sock = nl_socket_alloc();
-    struct nl_cache *cache;
+    struct nl_cache *cache = NULL;
     struct rtnl_link *link;
     uint32_t state;
 
@@ -215,7 +215,9 @@ bool SocketCanInterface::updateStatus()
         }
     }
 
-    nl_cache_free(cache);
+    if (cache) {
+        nl_cache_free(cache);
+    }
     nl_close(sock);
     nl_socket_free(sock);
 
@@ -227,7 +229,7 @@ bool SocketCanInterface::readConfig()
     bool retval = false;
 
     struct nl_sock *sock = nl_socket_alloc();
-    struct nl_cache *cache;
+    struct nl_cache *cache = NULL;
     struct rtnl_link *link;
 
     nl_connect(sock, NETLINK_ROUTE);
@@ -239,7 +241,9 @@ bool SocketCanInterface::readConfig()
         }
     }
 
-    nl_cache_free(cache);
+    if (cache) {
+        nl_cache_free(cache);
+    }
     nl_close(sock);
     nl_socket_free(sock);
 

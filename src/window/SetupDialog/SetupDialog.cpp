@@ -141,6 +141,11 @@ void SetupDialog::treeViewSelectionChanged(const QItemSelection &selected, const
     QModelIndex idx = selected.first().topLeft();
     SetupDialogTreeItem *item = static_cast<SetupDialogTreeItem *>(idx.internalPointer());
 
+    if (!item) {
+        ui->stackedWidget->setCurrentWidget(ui->emptyPage);
+        updateButtons();
+        return;
+    }
 
     _currentNetwork = item->network;
 
