@@ -50,29 +50,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="cbAutoScroll">
-        <property name="toolTip">
-         <string>Autoscroll</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../../cangaroo.qrc">
-          <normaloff>:/assets/auto-scroll.svg</normaloff>:/assets/auto-scroll.svg</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>20</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

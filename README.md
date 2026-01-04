@@ -60,7 +60,7 @@ These commands ensure your system has all the required Qt6 libraries, CAN-relate
 ```bash
 git clone https://github.com/OpenAutoDiagLabs/cangaroo
 
-cd CANgaroo/src && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig qmake6 && cd .. && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig make -j$(nproc)
+cd cangaroo/src && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig qmake6 && cd .. && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig make -j$(nproc)
 ```
 
 The binary will be located in `../bin/cangaroo`.
