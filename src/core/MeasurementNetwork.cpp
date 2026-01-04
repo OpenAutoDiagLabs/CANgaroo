@@ -79,8 +79,7 @@ void MeasurementNetwork::addCanDb(QSharedPointer<CanDb> candb)
 
 void MeasurementNetwork::reloadCanDbs(Backend *backend)
 {
-    foreach(pCanDb db, _canDbs)
-    {
+    for (pCanDb &db : _canDbs) {
         db = backend->loadDbc(db->getPath());
     }
 }

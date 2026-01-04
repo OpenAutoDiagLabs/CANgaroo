@@ -103,7 +103,7 @@ void GraphWindow::testAddData(qreal new_yval)
     // Apply Y margin and set range
     ymin -= 1;
     ymax += 1;
-    data_chart->axisY()->setRange(ymin, ymax);
+    data_chart->axes(Qt::Vertical).first()->setRange(ymin, ymax);
 
     // Add new point in
     serbuf->append(serbuf->points().at(serbuf->count()-1).x() + 1, new_yval);
