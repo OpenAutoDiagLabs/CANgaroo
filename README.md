@@ -16,9 +16,14 @@ Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Au
 ---
 
 ## 🎥 Demo Gallery
-
-![Cangaroo Capture](test/output.gif)
+![Cangaroo Trace View](test/trace_view.gif)
 *Real-time capture and decoding of CAN traffic using DBC databases.*
+<!-- slide -->
+![Cangaroo Generator View](test/generator_view.gif)
+*Simulate CAN traffic with customizable periodic and manual transmissions.*
+<!-- slide -->
+![Cangaroo Overview](test/output.gif)
+*Flexible dockable workspace optimized for multi-monitor analysis.*
 
 ---
 

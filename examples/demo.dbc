@@ -21,25 +21,24 @@ NS_ :
 	SIG_GROUP_
 	SIG_VALTYPE_
 	SIG_UNIT_
-	智
 	SG_MUL_VAL_
 
 BS_:
 
-BU_:
+BU_: EngineECU TransmissionECU DisplayECU
 
-BO_ 256 EngineData: 8 Vector__XXX
- SG_ EngineSpeed : 0|16@1+ (1,0) [0|8000] "rpm" Vector__XXX
- SG_ EngineTemp : 16|8@1+ (1,-40) [-40|215] "degC" Vector__XXX
- SG_ OilPressure : 24|8@1+ (0.1,0) [0|25] "bar" Vector__XXX
+BO_ 256 EngineData: 8 EngineECU
+ SG_ EngineSpeed : 0|16@0+ (1,0) [0|8000] "rpm" DisplayECU
+ SG_ EngineTemp : 16|8@0+ (1,-40) [-40|215] "degC" DisplayECU
+ SG_ OilPressure : 24|8@0+ (0.1,0) [0|25] "bar" DisplayECU
 
-BO_ 512 TransmissionData: 4 Vector__XXX
- SG_ GearPos : 0|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ VehicleSpeed : 4|12@1+ (0.1,0) [0|400] "km/h" Vector__XXX
+BO_ 512 TransmissionData: 4 TransmissionECU
+ SG_ GearPos : 0|4@0+ (1,0) [0|15] "" DisplayECU
+ SG_ VehicleSpeed : 4|12@0+ (0.1,0) [0|400] "km/h" DisplayECU
 
-BO_ 768 AmbientData: 2 Vector__XXX
- SG_ OutsideTemp : 0|8@1+ (1,-40) [-40|100] "degC" Vector__XXX
- SG_ Humidity : 8|8@1+ (0.5,0) [0|100] "%" Vector__XXX
+BO_ 768 AmbientData: 2 SensorECU
+ SG_ OutsideTemp : 0|8@0+ (1,-40) [-40|100] "degC" DisplayECU
+ SG_ Humidity : 8|8@0+ (0.5,0) [0|100] "%" DisplayECU
 
 CM_ BO_ 256 "Engine status information";
 CM_ SG_ 256 EngineSpeed "Current engine rotations per minute";

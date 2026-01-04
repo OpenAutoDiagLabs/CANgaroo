@@ -96,7 +96,7 @@ private:
     QModelIndex getSelectedIndex();
     SetupDialogTreeItem *getSelectedItem();
 
-    void addCanDb(const QModelIndex &parent);
+    void addCanDb(const QModelIndex &parent, const QString &filename);
     void reloadCanDbs(const QModelIndex &parent);
     void addInterface(const QModelIndex &parent);
 
