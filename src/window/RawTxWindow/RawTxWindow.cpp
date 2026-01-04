@@ -65,8 +65,25 @@ RawTxWindow::RawTxWindow(QWidget *parent, Backend &backend) :
     _is_setting_message = false;
 
     QList<QLineEdit*> lines = this->findChildren<QLineEdit*>();
+    QRegularExpression hex8("^[0-9A-Fa-f]{0,8}$");
+    QRegularExpression hex2("^[0-9A-Fa-f]{0,2}$");
+
     for (QLineEdit *l : lines) {
-        connect(l, SIGNAL(textChanged(QString)), this, SLOT(reflash_can_msg()));
+        l->setInputMask("");
+        if (l == ui->fieldAddress) {
+            l->setValidator(new QRegularExpressionValidator(hex8, this));
+        } else if (l->objectName().startsWith("fieldByte")) {
+            l->setValidator(new QRegularExpressionValidator(hex2, this));
+        }
+
+        connect(l, &QLineEdit::textChanged, this, [l, this](const QString &text){
+            if (text != text.toUpper()) {
+                int pos = l->cursorPosition();
+                l->setText(text.toUpper());
+                l->setCursorPosition(pos);
+            }
+            this->reflash_can_msg();
+        });
     }
     QList<QCheckBox*> checks = this->findChildren<QCheckBox*>();
     for (QCheckBox *c : checks) {
