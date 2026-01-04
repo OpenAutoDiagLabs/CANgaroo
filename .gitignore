@@ -41,3 +41,7 @@ test.dbc
 build/
 
 bin/
+
+# Release artifacts
+cangaroo-v*.tar.gz
+cangaroo-v*.tar.gz.sha256

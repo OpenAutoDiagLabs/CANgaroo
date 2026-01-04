@@ -42,7 +42,6 @@ class TraceWindow : public ConfigurableWidget
 
 public:
     typedef enum mode {
-        mode_linear,
         mode_aggregated
     } mode_t;
 
@@ -72,9 +71,6 @@ private:
     timestamp_mode_t _timestampMode;
 
     TraceFilterModel * _aggFilteredModel;
-    TraceFilterModel * _linFilteredModel;
-    LinearTraceViewModel *_linearTraceViewModel;
     AggregatedTraceViewModel *_aggregatedTraceViewModel;
     QSortFilterProxyModel *_aggregatedProxyModel;
-    QSortFilterProxyModel *_linearProxyModel;
 };

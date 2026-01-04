@@ -1,56 +1,62 @@
-# <img src="src/cangaroo.ico" width="48" height="48"> CANgaroo - Professional CAN Bus Analysis
+# <img src="src/assets/cangaroo.png" width="48" height="48"> Cangaroo
+**Open-source CAN bus analyzer for Linux, Automotive, Robotics, and Industrial Applications**
 
-CANgaroo is a powerful, open-source CAN bus analyzer designed for engineers working in **Automotive**, **Robotics**, and **Industrial Automation**. Whether you are debugging a vehicle network, developing robot sensors, or monitoring industrial machinery, CANgaroo provides the tools you need to capture, decode, and analyze CAN traffic in real-time.
+[![Try Cangaroo Now](https://img.shields.io/badge/Try-Cangaroo-blue?style=for-the-badge)](https://github.com/OpenAutoDiagLabs/cangaroo/releases/latest)
 
-![Cangaroo Demo](test/output.gif)
+![GitHub stars](https://img.shields.io/github/stars/OpenAutoDiagLabs/cangaroo?style=social)
+![GitHub forks](https://img.shields.io/github/forks/OpenAutoDiagLabs/cangaroo?style=social)
+![GitHub issues](https://img.shields.io/github/issues/OpenAutoDiagLabs/cangaroo)
+![License](https://img.shields.io/github/license/OpenAutoDiagLabs/cangaroo)
+![Release](https://img.shields.io/github/v/release/OpenAutoDiagLabs/cangaroo)
+
+Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Automotive**, **Robotics**, and **Industrial Automation**. It facilitates real-time capture, decoding, and analysis of CAN and CAN‑FD traffic.
+
+> **Works with SocketCAN (Linux), CANable, Candlelight, and CANblaster for immediate testing and real hardware connections.**
+
+---
+
+## 🎥 Demo Gallery
+![Cangaroo Trace View](test/trace_view.gif)
+*Real-time capture and decoding of CAN traffic using DBC databases.*
+<!-- slide -->
+![Cangaroo Generator View](test/generator_view.gif)
+*Simulate CAN traffic with customizable periodic and manual transmissions.*
+<!-- slide -->
+![Cangaroo Overview](test/output.gif)
+*Flexible dockable workspace optimized for multi-monitor analysis.*
 
 ---
 
 ## 🚀 Key Features
 
-- **Wide Hardware Support**: Works with SocketCAN (Linux), CANable (SLCAN), Candlelight, and CANblaster (UDP).
-- **CAN & CAN-FD**: Full support for both standard CAN and high-speed CAN-FD frames.
-- **Real-time DBC Decoding**: Load multiple DBC files to see signals and messages decoded instantly in the trace view.
-- **Integrated Graphics**: Graph signals over time to visualize sensor data and bus behavior.
-- **Advanced Filtering**: Quickly isolate relevant traffic with powerful live filters.
-- **Flexible Logging**: Export traces and logs to standard formats for offline analysis.
-- **Modern UI**: Streamlined interface with dockable windows for a customizable workspace.
+*   **Real-time CAN/CAN-FD Decoding**: Support for standard and high-speed flexible data-rate frames.
+*   **Wide Hardware Compatibility**: Seamlessly works with **SocketCAN** (Linux), **CANable** (SLCAN), **Candlelight**, and **CANblaster** (UDP).
+*   **DBC Database Support**: Load multiple `.dbc` files to instantly decode frames into human-readable signals.
+*   **Data Visualization**: Integrated graphing tools to visualize signal changes over time.
+*   **Advanced Filtering & Logging**: Isolate critical data with live filters and export captures for offline analysis.
+*   **Modern Workspace**: A clean, dockable user interface optimized for multi-monitor setups.
 
 ---
 
-## 🛠️ Installation (Linux)
+## 🛠️ Installation & Setup (Linux)
 
-The easiest way to get started on Linux is to use our automated installation script:
+Getting started is as simple as running our automated setup script:
 
 ```bash
-git clone https://github.com/OpenAutoDiagLabs/cangaroo
-cd cangaroo
+git clone https://github.com/OpenAutoDiagLabs/CANgaroo.git
+cd CANgaroo
 ./install_linux.sh
 ```
 
-### Manual Installation by Distro
+### Manual Installation
 
-**Ubuntu / Debian / Mint**
-```bash
-sudo apt update
-sudo apt install qt6-base-dev libqt6charts6-dev libqt6serialport6-dev build-essential libnl-3-dev libnl-route-3-dev
-```
+| Distribution | Command |
+| :--- | :--- |
+| **Ubuntu / Debian** | `sudo apt install qt6-base-dev libqt6charts6-dev libqt6serialport6-dev build-essential libnl-3-dev libnl-route-3-dev` |
+| **Fedora** | `sudo dnf install qt6-qtbase-devel qt6-qtcharts-devel qt6-qtserialport-devel libnl3-devel` |
+| **Arch Linux** | `sudo pacman -S qt6-base qt6-charts qt6-serialport libnl` |
 
-**Fedora**
-```bash
-sudo dnf install qt6-qtbase-devel qt6-qtcharts-devel qt6-qtserialport-devel libnl3-devel
-```
-
-**Arch Linux**
-```bash
-sudo pacman -S qt6-base qt6-charts qt6-serialport libnl
-```
-
----
-
-## 🏗️ Building from Source
-
-Once dependencies are installed, follow these steps:
+### Building from Source
 
 ```bash
 cd src
@@ -58,78 +64,63 @@ PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig qmake6
 make -j$(nproc)
 ```
 
-The binary will be generated in `bin/cangaroo`.
-
 ---
 
-## 🚦 Getting Started
+## 🚦 Quick Start Guide
 
-### 1. Set up a Virtual CAN Interface (Linux)
-If you don't have hardware yet, you can test CANgaroo using a virtual interface:
-
+### 1. Zero-Hardware Testing (Virtual CAN)
 ```bash
 sudo modprobe vcan
 sudo ip link add dev vcan0 type vcan
 sudo ip link set up vcan0
 ```
 
-### 2. Connect to an Interface
-Launch CANgaroo, go to **Setup -> Interfaces**, and select your device (e.g., `vcan0` or a physical `can0`).
-
-### 3. Load a DBC File
-To decode messages, go to **Measurement -> Add CAN Database** and select your `.dbc` file. Signals will now appear in the Trace window.
-
----
-
-## 📖 Examples
-
-### Recording Traffic
-- Connect to your interface.
-- Hit the **Start** button.
-- Use **File -> Export Logs** to save the captured data.
-
-### Transmitting Data
-- Open the **Generator View**.
-- Define your message ID and data payload.
-- Click **Send** to inject the frame into the bus.
+### 2. Quick Test with Example Data
+```bash
+# Launch Cangaroo with a virtual interface and fallback DBC
+./bin/cangaroo -i vcan0 -d examples/demo.dbc
+```
 
 ---
 
-## 📜 Credits & Contributors
+## 📥 Downloads & Releases
 
-Original Author: Hubert Denkmair ([hubert@denkmair.de](mailto:hubert@denkmair.de))
-Lead Maintainer: [Jayachandran Dharuman](https://github.com/OpenAutoDiagLabs/cangaroo)
+Download the latest release tarball from the [Releases Page](https://github.com/OpenAutoDiagLabs/cangaroo/releases).
+
+### Verifying Your Download
+All official releases include a SHA256 checksum. Verify your download using:
+
+```bash
+sha256sum cangaroo-v0.4.1-linux-x86_64.tar.gz
+# Expected output: 
+# abc123def456...  cangaroo-v0.4.1-linux-x86_64.tar.gz
+```
+
+---
+
+## 🤝 Contribution & Community
+
+We welcome contributions!
+*   **Report Bugs**: Open an issue on our [GitHub Tracker](https://github.com/OpenAutoDiagLabs/cangaroo/issues).
+*   **Suggest Features**: Start a discussion in the [Discussions Tab](https://github.com/OpenAutoDiagLabs/cangaroo/discussions).
+*   **Contribute Code**: See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## 📜 Credits
+
+*   **Original Author**: Hubert Denkmair ([hubert@denkmair.de](mailto:hubert@denkmair.de))
+*   **Lead Maintainer**: [Jayachandran Dharuman](https://github.com/OpenAutoDiagLabs/cangaroo)
 
 ---
 
 ## 📝 Changelog Summary (v0.4.1)
-- **Qt6 Migration**: Fully updated for Qt 6.10 compatibility.
-- **Enhanced Persistence**: Explicit workspace management (Save/Load).
-- **Improved Stability**: Fixed several critical segmentation faults in SocketCAN drivers.
-- **Trace Simplification**: Streamlined Trace View by removing redundant AutoScroll and Aggregation toggles (now active by default).
-
-*For a full history, see the [Changelog Section below](#full-changelog).*
+* **Qt 6.10 Migration**: Full support for the latest Qt framework.
+* **SocketCAN Stability**: Resolved driver crashes during interface discovery.
+* **UI Streamlining**: Removed redundant toggles for a cleaner analysis experience.
 
 ---
 
-<details>
-<summary><b>Click to expand Full Changelog</b></summary>
+**Keywords**: CAN bus analyzer Linux, SocketCAN GUI, CAN FD decoder, automotive diagnostic tool, open-source CAN tool.
 
-### v0.4.1
-* Qt 6.10 Migration
-* Explicit Workspace Persistence
-* Fixed SocketCAN stability issues
-* UI Simplification (removed AutoScroll/Aggregate checkboxes)
-
-### v0.3.0
-* Migrate to Qt6
-* Added GrIP driver
-
-### v0.2.4.1
-* Add WeAct Studio Support
-* Initial Translation support
-
-### v0.2.4
-* Add initial support for CANFD
-* Add live filtering of CAN messages in trace view
-</details>
+**License**: [GPL-3.0+](LICENSE)

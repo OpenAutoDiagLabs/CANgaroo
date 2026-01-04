@@ -46,7 +46,7 @@ public:
     CanInterfaceIdList getReferencedCanInterfaces();
 
     void addCanDb(pCanDb candb);
-    void reloadCanDbs(Backend *backend);
+    bool reloadCanDbs(Backend *backend, QStringList *errors = 0);
     QList<pCanDb> _canDbs;
 
     QString name() const;

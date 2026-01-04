@@ -77,11 +77,22 @@ void MeasurementNetwork::addCanDb(QSharedPointer<CanDb> candb)
     _canDbs.append(candb);
 }
 
-void MeasurementNetwork::reloadCanDbs(Backend *backend)
+bool MeasurementNetwork::reloadCanDbs(Backend *backend, QStringList *errors)
 {
+    bool allSuccess = true;
     for (pCanDb &db : _canDbs) {
-        db = backend->loadDbc(db->getPath());
+        QString errorMsg;
+        pCanDb newDb = backend->loadDbc(db->getPath(), &errorMsg);
+        if (newDb) {
+            db = newDb;
+        } else {
+            allSuccess = false;
+            if (errors) {
+                errors->append(QString("%1: %2").arg(db->getPath(), errorMsg));
+            }
+        }
     }
+    return allSuccess;
 }
 
 

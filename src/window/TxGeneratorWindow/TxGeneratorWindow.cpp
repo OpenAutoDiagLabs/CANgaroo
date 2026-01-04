@@ -51,6 +51,16 @@ TxGeneratorWindow::TxGeneratorWindow(QWidget *parent, Backend &backend) :
     _bitMatrixWidget->setCellSize(50);
     _bitMatrixWidget->setFixedSize(_bitMatrixWidget->sizeHint());
 
+    ui->lineManualId->setInputMask("");
+    ui->lineManualId->setValidator(new QRegularExpressionValidator(QRegularExpression("^[0-9A-Fa-f]{0,8}$"), this));
+    connect(ui->lineManualId, &QLineEdit::textChanged, this, [this](const QString &text){
+        if (text != text.toUpper()) {
+            int cursorPos = ui->lineManualId->cursorPosition();
+            ui->lineManualId->setText(text.toUpper());
+            ui->lineManualId->setCursorPosition(cursorPos);
+        }
+    });
+
     refreshInterfaces();
     updateMeasurementState();
     populateDbcMessages();
@@ -125,7 +135,7 @@ void TxGeneratorWindow::populateDbcMessages()
                         CanDbMessage *dbMsg = *it;
                         if (dbMsg) {
                             QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeAvailable);
-                            item->setText(0, QString("0x%1").arg(dbMsg->getRaw_id(), 3, 16, QChar('0')).toUpper());
+                            item->setText(0, "0x" + QString("%1").arg(dbMsg->getRaw_id(), 3, 16, QChar('0')).toUpper());
                             item->setText(1, dbMsg->getName());
                             item->setData(0, Qt::UserRole, QVariant::fromValue((void*)dbMsg));
                         }
@@ -516,7 +526,7 @@ void TxGeneratorWindow::updateActiveList()
         connect(btnStatus, &QPushButton::clicked, this, &TxGeneratorWindow::onStatusButtonClicked);
         ui->treeActive->setItemWidget(item, 0, btnStatus);
         
-        item->setText(1, QString("0x%1").arg(cm.msg.getId(), 3, 16, QChar('0')).toUpper());
+        item->setText(1, "0x" + QString("%1").arg(cm.msg.getId(), 3, 16, QChar('0')).toUpper());
         item->setText(2, cm.name);
         CanInterface *intf = _backend.getInterfaceById(cm.interfaceId);
         item->setText(3, intf ? intf->getName() : "Unknown");
@@ -555,7 +565,7 @@ void TxGeneratorWindow::updateRowUI(int row)
         }
     }
     
-    item->setText(1, QString("0x%1").arg(cm.msg.getId(), 3, 16, QChar('0')).toUpper());
+    item->setText(1, "0x" + QString("%1").arg(cm.msg.getId(), 3, 16, QChar('0')).toUpper());
     item->setText(2, cm.name);
     CanInterface *intf = _backend.getInterfaceById(cm.interfaceId);
     item->setText(3, intf ? intf->getName() : "Unknown");
@@ -574,7 +584,7 @@ void TxGeneratorWindow::updateMessage(const CanMessage &msg)
         // Also update the tree item text if ID changed
         QTreeWidgetItem *item = ui->treeActive->currentItem();
         if (item) {
-            item->setText(1, QString("0x%1").arg(msg.getId(), 3, 16, QChar('0')).toUpper());
+            item->setText(1, "0x" + QString("%1").arg(msg.getId(), 3, 16, QChar('0')).toUpper());
             item->setText(4, QString::number(msg.getLength()));
         }
     }

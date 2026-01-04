@@ -40,16 +40,6 @@
        <widget class="QComboBox" name="cbTimestampMode"/>
       </item>
       <item>
-       <widget class="QCheckBox" name="cbAggregated">
-        <property name="text">
-         <string>Aggregate by ID</string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

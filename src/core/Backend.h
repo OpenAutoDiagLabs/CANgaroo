@@ -82,7 +82,7 @@ public:
     CanDriver *getDriverByName(QString driverName);
     CanInterface *getInterfaceByDriverAndName(QString driverName, QString deviceName);
 
-    pCanDb loadDbc(QString filename);
+    pCanDb loadDbc(QString filename, QString *errorMsg = 0);
 
     void clearLog();
     LogModel &getLogModel() const;

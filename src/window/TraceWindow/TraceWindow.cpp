@@ -39,11 +39,6 @@ TraceWindow::TraceWindow(QWidget *parent, Backend &backend) :
 {
     ui->setupUi(this);
 
-    _linearTraceViewModel = new LinearTraceViewModel(backend);
-    _linearProxyModel = new QSortFilterProxyModel(this);
-    _linearProxyModel->setSourceModel(_linearTraceViewModel);
-    _linearProxyModel->setDynamicSortFilter(true);
-
     _aggregatedTraceViewModel = new AggregatedTraceViewModel(backend);
     _aggregatedProxyModel = new QSortFilterProxyModel(this);
     _aggregatedProxyModel->setSourceModel(_aggregatedTraceViewModel);
@@ -51,8 +46,6 @@ TraceWindow::TraceWindow(QWidget *parent, Backend &backend) :
 
     _aggFilteredModel = new TraceFilterModel(this);
     _aggFilteredModel->setSourceModel(_aggregatedProxyModel);
-    _linFilteredModel = new TraceFilterModel(this);
-    _linFilteredModel->setSourceModel(_linearProxyModel);
 
     setMode(mode_aggregated);
 
@@ -80,8 +73,6 @@ TraceWindow::TraceWindow(QWidget *parent, Backend &backend) :
     ui->cbTimestampMode->addItem(tr("Delta"), 2);
     setTimestampMode(timestamp_mode_delta);
 
-    connect(_linearTraceViewModel, SIGNAL(rowsInserted(QModelIndex,int,int)), this, SLOT(rowsInserted(QModelIndex,int,int)));
-
     connect(ui->filterLineEdit, SIGNAL(textChanged(QString)), this, SLOT(on_cbFilterChanged()));
 
     connect(ui->TraceClearpushButton, SIGNAL(released()), this, SLOT(on_cbTraceClearpushButton()));
@@ -92,33 +83,16 @@ TraceWindow::~TraceWindow()
 {
     delete ui;
     delete _aggregatedTraceViewModel;
-    delete _linearTraceViewModel;
 }
 
 void TraceWindow::setMode(TraceWindow::mode_t mode)
 {
-    bool isChanged = (_mode != mode);
     _mode = mode;
 
-    if (_mode==mode_linear)
-    {
-        ui->tree->setSortingEnabled(false);
-        ui->tree->setModel(_linFilteredModel); //_linearTraceViewModel);
-        ui->tree->sortByColumn(BaseTraceViewModel::column_index, Qt::AscendingOrder);
-    }
-    else
-    {
-        ui->tree->setSortingEnabled(true);
-        ui->tree->setModel(_aggFilteredModel); //_aggregatedProxyModel);
-        ui->tree->sortByColumn(BaseTraceViewModel::column_canid, Qt::AscendingOrder);
-    }
-
+    ui->tree->setSortingEnabled(true);
+    ui->tree->setModel(_aggFilteredModel);
+    ui->tree->sortByColumn(BaseTraceViewModel::column_canid, Qt::AscendingOrder);
     ui->tree->scrollToBottom();
-
-    if (isChanged)
-    {
-        emit(settingsChanged(this));
-    }
 }
 
 
@@ -135,7 +109,6 @@ void TraceWindow::setTimestampMode(int mode)
     }
 
     _aggregatedTraceViewModel->setTimestampMode(new_mode);
-    _linearTraceViewModel->setTimestampMode(new_mode);
 
     if (new_mode != _timestampMode)
     {
@@ -162,9 +135,6 @@ bool TraceWindow::saveXML(Backend &backend, QDomDocument &xml, QDomElement &root
     root.setAttribute("mode", "aggregated");
     root.setAttribute("TimestampMode", _timestampMode);
 
-    QDomElement elLinear = xml.createElement("LinearTraceView");
-    root.appendChild(elLinear);
-
     QDomElement elAggregated = xml.createElement("AggregatedTraceView");
     elAggregated.setAttribute("SortColumn", _aggregatedProxyModel->sortColumn());
     root.appendChild(elAggregated);
@@ -181,8 +151,6 @@ bool TraceWindow::loadXML(Backend &backend, QDomElement &el)
 
     setMode(mode_aggregated);
     setTimestampMode(el.attribute("TimestampMode", "0").toInt());
-
-    QDomElement elLinear = el.firstChildElement("LinearTraceView");
 
     QDomElement elAggregated = el.firstChildElement("AggregatedTraceView");
     int sortColumn = elAggregated.attribute("SortColumn", "-1").toInt();
@@ -214,9 +182,7 @@ void TraceWindow::on_cbTimestampMode_currentIndexChanged(int index)
 void TraceWindow::on_cbFilterChanged()
 {
     _aggFilteredModel->setFilterText(ui->filterLineEdit->text());
-    _linFilteredModel->setFilterText(ui->filterLineEdit->text());
     _aggFilteredModel->invalidate();
-    _linFilteredModel->invalidate();
 }
 
 void TraceWindow::on_cbTraceClearpushButton()
