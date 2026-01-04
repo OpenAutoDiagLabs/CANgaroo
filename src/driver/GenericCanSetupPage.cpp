@@ -221,7 +221,7 @@ void GenericCanSetupPage::updateUI()
 void GenericCanSetupPage::fillBitratesList(CanInterface *intf, unsigned selectedBitrate)
 {
     QList<uint32_t> bitrates;
-    foreach (CanTiming t, intf->getAvailableBitrates()) {
+    for (CanTiming t : intf->getAvailableBitrates()) {
         if (!bitrates.contains(t.getBitrate())) {
             bitrates.append(t.getBitrate());
         }
@@ -229,7 +229,7 @@ void GenericCanSetupPage::fillBitratesList(CanInterface *intf, unsigned selected
     std::sort(bitrates.begin(), bitrates.end());
 
     ui->cbBitrate->clear();
-    foreach (uint32_t br, bitrates) {
+    for (uint32_t br : bitrates) {
         ui->cbBitrate->addItem(QString::number(br), br);
     }
     ui->cbBitrate->setCurrentText(QString::number(selectedBitrate));
@@ -238,7 +238,7 @@ void GenericCanSetupPage::fillBitratesList(CanInterface *intf, unsigned selected
 void GenericCanSetupPage::fillSamplePointsForBitrate(CanInterface *intf, unsigned selectedBitrate, unsigned selectedSamplePoint)
 {
     QList<uint32_t> samplePoints;
-    foreach(CanTiming t, intf->getAvailableBitrates()) {
+    for (CanTiming t : intf->getAvailableBitrates()) {
         if (t.getBitrate() == selectedBitrate) {
             if (!samplePoints.contains(t.getSamplePoint())) {
                 samplePoints.append(t.getSamplePoint());
@@ -248,7 +248,7 @@ void GenericCanSetupPage::fillSamplePointsForBitrate(CanInterface *intf, unsigne
     std::sort(samplePoints.begin(), samplePoints.end());
 
     ui->cbSamplePoint->clear();
-    foreach (uint32_t sp, samplePoints) {
+    for (uint32_t sp : samplePoints) {
         ui->cbSamplePoint->addItem(CanTiming::getSamplePointStr(sp), sp);
     }
     ui->cbSamplePoint->setCurrentText(CanTiming::getSamplePointStr(selectedSamplePoint));
@@ -258,7 +258,7 @@ void GenericCanSetupPage::fillSamplePointsForBitrate(CanInterface *intf, unsigne
 void GenericCanSetupPage::fillFdBitrate(CanInterface *intf, unsigned selectedBitrate)
 {
     QList<uint32_t> fdBitrates;
-    foreach(CanTiming t, intf->getAvailableBitrates()) {
+    for (CanTiming t : intf->getAvailableBitrates()) {
         if (1) {
         //if (t.getBitrate() == selectedBitrate) {
             if (t.isCanFD() && !fdBitrates.contains(t.getBitrateFD())) {
@@ -269,7 +269,7 @@ void GenericCanSetupPage::fillFdBitrate(CanInterface *intf, unsigned selectedBit
     std::sort(fdBitrates.begin(), fdBitrates.end());
 
     ui->cbBitrateFD->clear();
-    foreach (uint32_t fd_br, fdBitrates) {
+    for (uint32_t fd_br : fdBitrates) {
         ui->cbBitrateFD->addItem(QString::number(fd_br), fd_br);
     }
     ui->cbBitrateFD->setCurrentText(QString::number(selectedBitrate));
@@ -278,7 +278,7 @@ void GenericCanSetupPage::fillFdBitrate(CanInterface *intf, unsigned selectedBit
 void GenericCanSetupPage::fillSamplePointsForFdBitrate(CanInterface *intf, unsigned selectedBitrate, unsigned selectedSamplePoint)
 {
     QList<uint32_t> samplePoints;
-    foreach(CanTiming t, intf->getAvailableBitrates()) {
+    for (CanTiming t : intf->getAvailableBitrates()) {
         if (t.getBitrateFD() == selectedBitrate) {
             if (!samplePoints.contains(t.getSamplePointFD())) {
                 samplePoints.append(t.getSamplePointFD());
@@ -288,7 +288,7 @@ void GenericCanSetupPage::fillSamplePointsForFdBitrate(CanInterface *intf, unsig
     std::sort(samplePoints.begin(), samplePoints.end());
 
     ui->cbSamplePointFD->clear();
-    foreach (uint32_t sp, samplePoints) {
+    for (uint32_t sp : samplePoints) {
         ui->cbSamplePointFD->addItem(CanTiming::getSamplePointFDStr(sp), sp);
     }
     ui->cbSamplePointFD->setCurrentText(CanTiming::getSamplePointFDStr(selectedSamplePoint));

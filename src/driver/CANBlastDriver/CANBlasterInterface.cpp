@@ -87,7 +87,7 @@ QList<CanTiming> CANBlasterInterface::getAvailableBitrates()
 
     unsigned i=0;
     foreach (unsigned br, bitrates) {
-        foreach(unsigned br_fd, bitrates_fd) {
+        for (unsigned br_fd : bitrates_fd) {
             foreach (unsigned sp, samplePoints) {
                 retval << CanTiming(i++, br, br_fd, sp);
             }

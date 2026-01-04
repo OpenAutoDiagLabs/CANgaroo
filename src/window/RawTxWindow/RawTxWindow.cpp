@@ -65,11 +65,11 @@ RawTxWindow::RawTxWindow(QWidget *parent, Backend &backend) :
     _is_setting_message = false;
 
     QList<QLineEdit*> lines = this->findChildren<QLineEdit*>();
-    foreach(QLineEdit *l, lines) {
+    for (QLineEdit *l : lines) {
         connect(l, SIGNAL(textChanged(QString)), this, SLOT(reflash_can_msg()));
     }
     QList<QCheckBox*> checks = this->findChildren<QCheckBox*>();
-    foreach(QCheckBox *c, checks) {
+    for (QCheckBox *c : checks) {
         connect(c, SIGNAL(stateChanged(int)), this, SLOT(reflash_can_msg()));
     }
     connect(ui->comboBoxDLC, SIGNAL(currentIndexChanged(int)), this, SLOT(reflash_can_msg()));

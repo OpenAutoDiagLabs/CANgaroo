@@ -457,7 +457,7 @@ bool DbcParser::parseSectionBu(CanDb &candb, DbcParser::DbcTokenList &tokens)
         return false;
     }
 
-    foreach(s, strings) {
+    for (const QString &s : strings) {
         candb.getOrCreateNode(s);
     }
 

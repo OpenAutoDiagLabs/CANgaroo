@@ -1,233 +1,135 @@
-# ![logo](/src/cangaroo.ico) **CANgaroo**
+# <img src="src/cangaroo.ico" width="48" height="48"> CANgaroo - Professional CAN Bus Analysis
 
-An open-source CAN bus analyzer with support for transmit/receive of standard and FD frames and DBC decoding of incoming frames.
+CANgaroo is a powerful, open-source CAN bus analyzer designed for engineers working in **Automotive**, **Robotics**, and **Industrial Automation**. Whether you are debugging a vehicle network, developing robot sensors, or monitoring industrial machinery, CANgaroo provides the tools you need to capture, decode, and analyze CAN traffic in real-time.
 
-**Supported interfaces:**
-
-* [CANable](http://canable.io) SLCAN interfaces on Windows and Linux
-* [CANable 2](http://canable.io) SLCAN interfaces on Windows and Linux with FD support
-* Candlelight interfaces on Windows
-* SocketCAN interfaces on Linux
-* [CANblaster](https://github.com/normaldotcom/canblaster) SocketCAN over UDP server with auto-discovery
-* GrIP Driver
-
-![demo1](/test/output.gif)
-
-Written by Hubert Denkmair [hubert@denkmair.de](mailto:hubert@denkmair.de)
-
-Further development by:
-
-* Jayachandran Dharuman ([https://github.com/OpenAutoDiagLabs/cangaroo](https://github.com/OpenAutoDiagLabs/cangaroo))
+![Cangaroo Demo](test/output.gif)
 
 ---
 
-## Building on Linux
+## 🚀 Key Features
 
-### Prerequisites (Ubuntu 24.04 and similar)
+- **Wide Hardware Support**: Works with SocketCAN (Linux), CANable (SLCAN), Candlelight, and CANblaster (UDP).
+- **CAN & CAN-FD**: Full support for both standard CAN and high-speed CAN-FD frames.
+- **Real-time DBC Decoding**: Load multiple DBC files to see signals and messages decoded instantly in the trace view.
+- **Integrated Graphics**: Graph signals over time to visualize sensor data and bus behavior.
+- **Advanced Filtering**: Quickly isolate relevant traffic with powerful live filters.
+- **Flexible Logging**: Export traces and logs to standard formats for offline analysis.
+- **Modern UI**: Streamlined interface with dockable windows for a customizable workspace.
 
-To set up a new development environment, you can follow one of the methods below:
+---
 
-**Method 1: Basic Universe Repository Setup**
+## 🛠️ Installation (Linux)
 
-```bash
-sudo add-apt-repository universe
-sudo apt update
-```
-
-**Method 2: Universe Repository + Qt6 Core Packages**
-
-```bash
-sudo add-apt-repository universe
-sudo apt update
-sudo apt install qt6-base-dev qt6-charts-dev qt6-serialport-dev
-```
-
-**Method 3: Full Package Install (Recommended)**
-
-```bash
-sudo apt install \
-    qt6-base-dev \
-    libqt6charts6-dev \
-    libqt6serialport6-dev \
-    build-essential git cmake \
-    libnl-3-dev libnl-route-3-dev libgl1-mesa-dev
-```
-
-These commands ensure your system has all the required Qt6 libraries, CAN-related dependencies, and build tools.
-
-### Build Instructions
+The easiest way to get started on Linux is to use our automated installation script:
 
 ```bash
 git clone https://github.com/OpenAutoDiagLabs/cangaroo
-
-cd cangaroo/src && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig qmake6 && cd .. && PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig make -j$(nproc)
+cd cangaroo
+./install_linux.sh
 ```
 
-The binary will be located in `../bin/cangaroo`.
+### Manual Installation by Distro
+
+**Ubuntu / Debian / Mint**
+```bash
+sudo apt update
+sudo apt install qt6-base-dev libqt6charts6-dev libqt6serialport6-dev build-essential libnl-3-dev libnl-route-3-dev
+```
+
+**Fedora**
+```bash
+sudo dnf install qt6-qtbase-devel qt6-qtcharts-devel qt6-qtserialport-devel libnl3-devel
+```
+
+**Arch Linux**
+```bash
+sudo pacman -S qt6-base qt6-charts qt6-serialport libnl
+```
 
 ---
 
-## Building on Windows
+## 🏗️ Building from Source
 
-* Qt Creator (Community Version is sufficient) brings everything you need.
-* **PCAN Libraries**:
+Once dependencies are installed, follow these steps:
 
-  * Download from [peak-system.com](http://www.peak-system.com/fileadmin/media/files/pcan-basic.zip)
-  * Extract to `src/driver/PeakCanDriver/pcan-basic-api`.
-  * Ensure `PCANBasic.dll` is in the same folder as the `.exe` file.
-* To disable Peak support, comment out `win32:include($$PWD/driver/PeakCanDriver/PeakCanDriver.pri)` in `src/src.pro`.
+```bash
+cd src
+PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig qmake6 
+make -j$(nproc)
+```
 
----
-
-## Usage Notes
-
-### Workspace Management
-
-* **Manual Persistence**: Workspaces are now explicitly managed. Use **File -> Save Workspace As** to create a configuration file.
-* **No Hidden Cache**: The application no longer uses a hidden cache for the "last session". You must open your saved `.cangaroo` workspace file to restore your settings.
-* **Auto-Save**: If a workspace file is currently open, changes will be saved to that file when closing the application.
-
-### Log Exporting
-
-* Open the **Log View** to see the new **"Export Logs..."** button.
-* You can save the current log stream to a formatted `.log` or `.txt` file for external analysis.
-* Use the **"Clear"** button in the Log View to reset the log display at any time.
+The binary will be generated in `bin/cangaroo`.
 
 ---
 
-## Changelog
+## 🚦 Getting Started
 
-### v0.4.0
+### 1. Set up a Virtual CAN Interface (Linux)
+If you don't have hardware yet, you can test CANgaroo using a virtual interface:
 
-* **Explicit Workspace Persistence**: Removed unreliable hidden cache system. Workspaces are now saved directly to user-specified files.
-* **Log Export Feature**: Export logs to `.log` and `.txt` files.
-* **Layout Restoration**: Optimized dock widgets to ensure "CAN Status" and "Generator View" are always visible.
-* **Stability Improvements**: Improved memory management and null-pointer protection for DBC and XML parsing.
-* **Build Fixes**: Added explicit include paths for `libnl3` for modern Linux distributions.
-* **Version Update**: Updated versioning to 0.4.0.
+```bash
+sudo modprobe vcan
+sudo ip link add dev vcan0 type vcan
+sudo ip link set up vcan0
+```
+
+### 2. Connect to an Interface
+Launch CANgaroo, go to **Setup -> Interfaces**, and select your device (e.g., `vcan0` or a physical `can0`).
+
+### 3. Load a DBC File
+To decode messages, go to **Measurement -> Add CAN Database** and select your `.dbc` file. Signals will now appear in the Trace window.
+
+---
+
+## 📖 Examples
+
+### Recording Traffic
+- Connect to your interface.
+- Hit the **Start** button.
+- Use **File -> Export Logs** to save the captured data.
+
+### Transmitting Data
+- Open the **Generator View**.
+- Define your message ID and data payload.
+- Click **Send** to inject the frame into the bus.
+
+---
+
+## 📜 Credits & Contributors
+
+Original Author: Hubert Denkmair ([hubert@denkmair.de](mailto:hubert@denkmair.de))
+Lead Maintainer: [Jayachandran Dharuman](https://github.com/OpenAutoDiagLabs/cangaroo)
+
+---
+
+## 📝 Changelog Summary (v0.4.1)
+- **Qt6 Migration**: Fully updated for Qt 6.10 compatibility.
+- **Enhanced Persistence**: Explicit workspace management (Save/Load).
+- **Improved Stability**: Fixed several critical segmentation faults in SocketCAN drivers.
+- **Trace Simplification**: Streamlined Trace View by removing redundant AutoScroll and Aggregation toggles (now active by default).
+
+*For a full history, see the [Changelog Section below](#full-changelog).*
+
+---
+
+<details>
+<summary><b>Click to expand Full Changelog</b></summary>
+
+### v0.4.1
+* Qt 6.10 Migration
+* Explicit Workspace Persistence
+* Fixed SocketCAN stability issues
+* UI Simplification (removed AutoScroll/Aggregate checkboxes)
 
 ### v0.3.0
-
 * Migrate to Qt6
 * Added GrIP driver
 
 ### v0.2.4.1
-
-* General bugfixes
 * Add WeAct Studio Support
 * Initial Translation support
 
 ### v0.2.4
-
 * Add initial support for CANFD
-* Add support for SLCAN interfaces on Windows and Linux (CANable, CANable 2.0)
-* Add support for [CANblaster](https://github.com/normaldotcom/canblaster) socketCAN over UDP
 * Add live filtering of CAN messages in trace view
-
-### v0.2.1
-
-* Improved logging
-* Refactorings
-* Scroll trace view per pixel, always show last message when autoscroll is on
-
-### v0.2.0
-
-* Docking windows system instead of MDI interface
-* Windows build and PCAN-basic driver
-* Handle muxed signals in backend and trace window
-* CAN status window
-* Show timestamps, log level, etc. in log window
-
-### v0.1.3
-
-* New CAN interface configuration GUI
-* Use libnl-route-3 for socketCAN device config read
-* Query socketCAN interfaces for supported config options
-* New logging subsystem, no longer using QDebug
-* Performance improvements when receiving many messages
-* Bugfix with time-delta view
-
-### v0.1.2
-
-* Fix device re-scan
-* Fix some DBC parsing issues
-* Implement big-endian signals
-
-### v0.1.1
-
-* Change source structure for Debian packaging
-* Add Debian packaging info
-
-### v0.1
-
-* Initial release
-
----
-
-## TODO
-
-### Backend
-
-* Support non-message frames in traces (e.g., markers)
-* Implement plugin API
-* Embed Python for scripting
-
-### CAN Drivers
-
-* Allow socketCAN interface config through suid binary
-* Hardware timestamps for socketCAN if possible
-* Cannelloni support
-* Windows Vector driver
-
-### Import / Export
-
-* Export to other formats (Vector ASC, BLF, MDF)
-* Import CAN-Traces
-
-### General UI
-
-* Style dock windows
-* Load/save docks from/to config
-
-### Log Window
-
-* Filter log messages by level
-
-### CAN Status Window
-
-* Display #warnings, #passive, #busoff, #restarts
-
-### Trace Window
-
-* Assign colors to CAN interfaces/messages
-* Limit displayed messages
-* Show error and non-message frames
-* Sort signals by startbit, name, or position in CANdb
-
-### CANdb-based Generator
-
-* Generate CAN messages from CANdbs
-* Set signals according to value tables
-* Provide generator functions for signals
-* Allow scripting of signal values
-
-### Replay Window
-
-* Replay CAN traces
-* Map interfaces in traces to available networks
-
-### Graph Window
-
-* Test QCustomPlot
-* Graph interface stats, message stats, signals
-
-### Packaging / Deployment
-
-* Provide clean Debian package
-* Flatpak support
-* Provide statically linked binary
-* Add Windows installer
-
----
-
-This version includes your requested Linux setup steps with all three options clearly listed, while keeping the original README structure and content.
+</details>
