@@ -84,6 +84,29 @@ ssh user@remote-ip "candump -L can0" | canplayer vcan0=can0 -t
 ```
 *Now open Cangaroo and connect to `vcan0` to see the remote traffic.*
 
+#### Nested SSH Tunneling (Multi-hop)
+If the target device is behind a jump host or firewall:
+1. **Create an SSH Tunnel**: Expose the remote device's SSH port to your local machine.
+```bash
+# local-pc -> jump-host -> target-device
+sshpass ssh -N -L localhost:9999:<remote-machine-ip>:22 user@jump-host-ip
+
+eg: ssh -N -L localhost:9999:10.66.201.60:22 root@10.147.17.225
+```
+
+**Breakdown of the command:**
+| Item | Description |
+| :--- | :--- |
+| `localhost:9999` | The local port on your **PC** that will map to the target device. |
+| `10.66.201.60` | The Internal IP of the **Remote Linux Device** (Target). |
+| `22` | The SSH port on the **Remote Linux Device**. |
+| `root@10.147.17.225` | The login details for the **Jump Host / Remote PC** that has access to the target. |
+
+2. **Stream CAN over the Tunnel**:
+```bash
+ssh -p 9999 root@localhost "stdbuf -o0 candump -L can0" | canplayer vcan0=can0 -t
+```
+
 ### 3. ARXML to DBC Conversion
 Cangaroo natively supports DBC. If you have ARXML files, you can convert them using `canconvert`:
 ```bash
