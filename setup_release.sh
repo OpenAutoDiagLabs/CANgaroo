@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# CANgaroo Dependency Installer for Linux
-# Supports Ubuntu/Debian, Fedora, and Arch Linux
+# CANgaroo Release Setup Tool
+# Use this script to install dependencies for the pre-compiled CANgaroo binary.
 
 set -e
 
@@ -19,10 +19,10 @@ echo "   ______ ___    _   __                                 "
 echo "  / ____//   |  / | / /____ _ ____ _ _____ ____   ____  "
 echo " / /    / /| | /  |/ // __ \`// __ \`// ___// __ \ / __ \ "
 echo "/ /___ / ___ |/ /|  // /_/ // /_/ // /   / /_/ // /_/ / "
-echo "\____//_/  |_/_/ |_/ \__, / \__,_/_/    \____/ \____/  "
+echo "\____//_/  |_/_/ |_/ \__, / \__,_|_|  \___/ \___/ \___/  "
 echo "                    /____/                              "
 echo -e "${NC}"
-echo -e "${BLUE}Open-source CAN bus analyzer setup tool${NC}"
+echo -e "${BLUE}CANgaroo Release Setup Tool${NC}"
 echo "-------------------------------------------------------"
 
 # Detect Distribution
@@ -42,40 +42,30 @@ install_deps() {
             echo "Installing dependencies for $OS (using apt)..."
             sudo apt update
             sudo apt install -y \
-                build-essential \
                 qt6-base-dev \
                 libqt6charts6-dev \
                 libqt6serialport6-dev \
                 libnl-3-dev \
                 libnl-route-3-dev \
-                libgl1-mesa-dev \
-                pkg-config \
-                git
+                libgl1-mesa-dev
             ;;
         fedora)
             echo "Installing dependencies for Fedora (using dnf)..."
             sudo dnf install -y \
-                gcc-c++ \
-                make \
                 qt6-qtbase-devel \
                 qt6-qtcharts-devel \
                 qt6-qtserialport-devel \
                 libnl3-devel \
-                mesa-libGL-devel \
-                pkgconf-pkg-config \
-                git
+                mesa-libGL-devel
             ;;
         arch)
             echo "Installing dependencies for Arch Linux (using pacman)..."
             sudo pacman -S --needed --noconfirm \
-                base-devel \
                 qt6-base \
                 qt6-charts \
                 qt6-serialport \
                 libnl \
-                mesa \
-                pkgconf \
-                git
+                mesa
             ;;
         *)
             echo -e "${RED}Error: Distribution $OS is not explicitly supported by this script.${NC}"
@@ -85,43 +75,21 @@ install_deps() {
     esac
 }
 
-build_cangaroo() {
-    echo -e "${BLUE}Building CANgaroo...${NC}"
-    cd src
-    # Try to find qmake6, fallback to qmake if not found or if it's already qt6
-    QMAKE_CMD=$(command -v qmake6 || command -v qmake)
-    
-    if [ -z "$QMAKE_CMD" ]; then
-        echo -e "${RED}Error: qmake not found. Please ensure Qt6 is installed correctly.${NC}"
-        exit 1
-    fi
-
-    # Set PKG_CONFIG_PATH for ubuntu/debian if needed
-    if [[ "$OS" == "ubuntu" || "$OS" == "debian" || "$OS" == "linuxmint" ]]; then
-        export PKG_CONFIG_PATH=/usr/lib/$(uname -m)-linux-gnu/pkgconfig:$PKG_CONFIG_PATH
-    fi
-
-    $QMAKE_CMD
-    make -j$(nproc)
-    cd ..
-}
-
 install_to_bin() {
     echo -e "${BLUE}Installing CANgaroo to /usr/local/bin...${NC}"
-    if [ -f "bin/cangaroo" ]; then
-        sudo cp bin/cangaroo /usr/local/bin/
+    if [ -f "cangaroo" ]; then
+        sudo cp cangaroo /usr/local/bin/
         echo -e "${GREEN}Cangaroo installed to /usr/local/bin/cangaroo${NC}"
     else
-        echo -e "${RED}Error: Binary not found at bin/cangaroo. Did the build fail?${NC}"
+        echo -e "${RED}Error: Binary 'cangaroo' not found in current directory.${NC}"
         exit 1
     fi
 }
 
 echo "Select an option:"
 echo "1) Install only dependencies"
-echo "2) Install dependencies and build Cangaroo"
-echo "3) Install dependencies, build Cangaroo, and install to /usr/local/bin"
-read -p "Enter choice [1-3]: " choice
+echo "2) Install dependencies and move CANgaroo to /usr/local/bin"
+read -p "Enter choice [1-2]: " choice
 
 case $choice in
     1)
@@ -129,11 +97,6 @@ case $choice in
         ;;
     2)
         install_deps
-        build_cangaroo
-        ;;
-    3)
-        install_deps
-        build_cangaroo
         install_to_bin
         ;;
     *)
@@ -144,9 +107,9 @@ esac
 
 echo "-------------------------------------------------------"
 echo -e "${GREEN}Setup completed successfully!${NC}"
-if [[ "$choice" -eq 2 ]]; then
-    echo "You can run CANgaroo from: ./bin/cangaroo"
-elif [[ "$choice" -eq 3 ]]; then
+if [[ "$choice" -eq 1 ]]; then
+    echo "You can run CANgaroo from the current directory: ./cangaroo"
+elif [[ "$choice" -eq 2 ]]; then
     echo "You can now run CANgaroo by simply typing 'cangaroo' in your terminal."
 fi
 echo "-------------------------------------------------------"

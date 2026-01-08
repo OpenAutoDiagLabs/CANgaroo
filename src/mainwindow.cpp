@@ -659,7 +659,7 @@ void MainWindow::showAboutDialog()
        "CANgaroo\n"
        "Open Source CAN bus analyzer\n"
        "\n"
-       "version 0.4.1\n"
+       "version 0.4.3\n"
        "\n"
        "(c)2015-2017 Hubert Denkmair\n"
        "(c)2026 Jayachandran Dharuman"

@@ -16,14 +16,14 @@ Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Au
 ---
 
 ## 🎥 Demo Gallery
-![Cangaroo Trace View](test/trace_view.gif)
 *Real-time capture and decoding of CAN traffic using DBC databases.*
+<br>![Cangaroo Trace View](test/trace_view.gif)<br>
 <!-- slide -->
-![Cangaroo Generator View](test/generator_view.gif)
-*Simulate CAN traffic with customizable periodic and manual transmissions.*
+*Simulate CAN traffic with customizable periodic and manual transmissions.* 
+<br>![Cangaroo Generator View](test/generator_view.gif)<br>
 <!-- slide -->
-![Cangaroo Overview](test/output.gif)
 *Flexible dockable workspace optimized for multi-monitor analysis.*
+<br>![Cangaroo Overview](test/output.gif)<br>
 
 ---
 
@@ -34,12 +34,13 @@ Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Au
 *   **DBC Database Support**: Load multiple `.dbc` files to instantly decode frames into human-readable signals.
 *   **Data Visualization**: Integrated graphing tools to visualize signal changes over time.
 *   **Advanced Filtering & Logging**: Isolate critical data with live filters and export captures for offline analysis.
-*   **Modern Workspace**: A clean, dockable user interface optimized for multi-monitor setups.
+*   **Modern Workspace**: A clean, dockable userinterface optimized for multi-monitor setups.
 
 ---
 
 ## 🛠️ Installation & Setup (Linux)
 
+### Option 1: Build from Source
 Getting started is as simple as running our automated setup script:
 
 ```bash
@@ -47,22 +48,22 @@ git clone https://github.com/OpenAutoDiagLabs/CANgaroo.git
 cd CANgaroo
 ./install_linux.sh
 ```
+Follow the interactive menu to install dependencies and build the project.
 
-### Manual Installation
+### Option 2: Using Release Package
+If you downloaded a pre-compiled release tarball, use the included setup script to prepare your environment:
+
+1. Extract the package: `tar -xzvf cangaroo-vX.Y.Z-linux-x86_64.tar.gz`
+2. Run the setup script: `./setup_release.sh`
+3. Select an option to install dependencies and/or install Cangaroo to `/usr/local/bin`.
+
+### Manual Dependency Installation
 
 | Distribution | Command |
 | :--- | :--- |
 | **Ubuntu / Debian** | `sudo apt install qt6-base-dev libqt6charts6-dev libqt6serialport6-dev build-essential libnl-3-dev libnl-route-3-dev` |
 | **Fedora** | `sudo dnf install qt6-qtbase-devel qt6-qtcharts-devel qt6-qtserialport-devel libnl3-devel` |
 | **Arch Linux** | `sudo pacman -S qt6-base qt6-charts qt6-serialport libnl` |
-
-### Building from Source
-
-```bash
-cd src
-PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig qmake6 
-make -j$(nproc)
-```
 
 ---
 
@@ -75,10 +76,22 @@ sudo ip link add dev vcan0 type vcan
 sudo ip link set up vcan0
 ```
 
-### 2. Quick Test with Example Data
+### 2. Remote CAN Monitoring (SSH Pipe)
+Monitor traffic from a remote machine (e.g., a Raspberry Pi on your vehicle) on your local PC:
 ```bash
-# Launch Cangaroo with a virtual interface and fallback DBC
-./bin/cangaroo -i vcan0 -d examples/demo.dbc
+# On your local machine, setup vcan0 as shown above, then:
+ssh user@remote-ip "candump -L can0" | canplayer vcan0=can0 -t
+```
+*Now open Cangaroo and connect to `vcan0` to see the remote traffic.*
+
+### 3. ARXML to DBC Conversion
+Cangaroo natively supports DBC. If you have ARXML files, you can convert them using `canconvert`:
+```bash
+# Install canconvert
+pip install canconvert
+
+# Convert ARXML to DBC
+canconvert TCU.arxml TCU.dbc
 ```
 
 ---
@@ -87,13 +100,17 @@ sudo ip link set up vcan0
 
 Download the latest release tarball from the [Releases Page](https://github.com/OpenAutoDiagLabs/cangaroo/releases).
 
+---
+
+## 🤝 Contribution & Community
+
 ### Verifying Your Download
 All official releases include a SHA256 checksum. Verify your download using:
 
 ```bash
-sha256sum cangaroo-v0.4.1-linux-x86_64.tar.gz
+sha256sum cangaroo-v0.4.3-linux-x86_64.tar.gz
 # Expected output: 
-# abc123def456...  cangaroo-v0.4.1-linux-x86_64.tar.gz
+# abc123def456...  cangaroo-v0.4.3-linux-x86_64.tar.gz
 ```
 
 ---
@@ -114,7 +131,7 @@ We welcome contributions!
 
 ---
 
-## 📝 Changelog Summary (v0.4.1)
+## 📝 Changelog Summary (v0.4.3)
 * **Qt 6.10 Migration**: Full support for the latest Qt framework.
 * **SocketCAN Stability**: Resolved driver crashes during interface discovery.
 * **UI Streamlining**: Removed redundant toggles for a cleaner analysis experience.
