@@ -77,6 +77,7 @@ sudo ip link set up vcan0
 ```
 
 ### 2. Remote CAN Monitoring (SSH Pipe)
+![Remote CAN Monitoring](img/remote_can_monitoring.png)
 Monitor traffic from a remote machine (e.g., a Raspberry Pi on your vehicle) on your local PC:
 ```bash
 # On your local machine, setup vcan0 as shown above, then:
@@ -86,6 +87,7 @@ ssh user@remote-ip "candump -L can0" | canplayer vcan0=can0 -t
 
 #### Nested SSH Tunneling (Multi-hop)
 If the target device is behind a jump host or firewall:
+![Remote CAN Monitoring](img/nested_remote_can_monitoring.png)
 1. **Create an SSH Tunnel**: Expose the remote device's SSH port to your local machine.
 ```bash
 # local-pc -> jump-host -> target-device
