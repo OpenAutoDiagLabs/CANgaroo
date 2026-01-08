@@ -3,7 +3,7 @@
 # 1. CHECK INPUT
 if [ -z "$1" ]; then
     echo "Usage: $0 <version>"
-    echo "Example: $0 0.4.1"
+    echo "Example: $0 0.4.3"
     exit 1
 fi
 
@@ -24,28 +24,33 @@ fi
 
 echo "Packaging ${APP_NAME} version ${VERSION}..."
 
-# 3. CREATE STAGING DIRECTORY
+# 3. CREATE STAGING AND RELEASE DIRECTORIES
 mkdir -p release_stage
+mkdir -p releases
 cp "$BINARY_PATH" release_stage/
 cp README.md release_stage/
 cp LICENSE release_stage/
 cp CONTRIBUTING.md release_stage/
+cp setup_release.sh release_stage/
 
 # 4. CREATE TARBALL
 # -C changes directory so the tar doesn't include the 'release_stage' parent folder path
-tar -czf "$TAR_FILE" -C release_stage .
+tar -czf "releases/$TAR_FILE" -C release_stage .
 
 # 5. GENERATE CHECKSUM
+cd releases
 sha256sum "$TAR_FILE" > "${TAR_FILE}.sha256"
+cd ..
 
 # 6. CLEANUP & OUTPUT
 rm -rf release_stage
 
 echo "-------------------------------------------------------"
 echo "Release Created Successfully:"
+echo "Location: releases/"
 echo "Package:  $TAR_FILE"
 echo "Checksum: ${TAR_FILE}.sha256"
 echo "-------------------------------------------------------"
 echo "SHA256 Output:"
-cat "${TAR_FILE}.sha256"
+cat "releases/${TAR_FILE}.sha256"
 echo "-------------------------------------------------------"
