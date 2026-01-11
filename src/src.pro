@@ -8,6 +8,13 @@ QT += serialport
 
 TARGET = cangaroo
 TEMPLATE = app
+
+# Read version from VERSION file
+CANGAROO_VERSION_RAW = $$cat($$PWD/../VERSION)
+CANGAROO_VERSION_STR_QUOTED = \"$$CANGAROO_VERSION_RAW\"
+
+QMAKE_SUBSTITUTES += version.h.in
+INCLUDEPATH += .
 CONFIG += warn_on
 CONFIG += link_pkgconfig
 
@@ -38,6 +45,7 @@ RESOURCES = cangaroo.qrc
 include($$PWD/core/core.pri)
 include($$PWD/driver/driver.pri)
 include($$PWD/parser/dbc/dbc.pri)
+include($$PWD/decoders/decoders.pri)
 include($$PWD/window/TraceWindow/TraceWindow.pri)
 include($$PWD/window/SetupDialog/SetupDialog.pri)
 include($$PWD/window/LogWindow/LogWindow.pri)

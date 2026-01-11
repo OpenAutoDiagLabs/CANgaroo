@@ -165,6 +165,8 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
+    <addaction name="actionReport_Issue"/>
+    <addaction name="separator"/>
     <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menu_Trace">
@@ -232,6 +234,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="actionReport_Issue">
+   <property name="text">
+    <string>&amp;Report Issue...</string>
    </property>
   </action>
   <action name="actionSave_Trace_to_file">

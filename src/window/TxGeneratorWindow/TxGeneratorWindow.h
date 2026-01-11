@@ -50,11 +50,13 @@ public:
     virtual QSize sizeHint() const override;
 
 signals:
+    void loopbackFrame(const CanMessage &msg);
     void messageSelected(const CanMessage &msg, const QString &name, CanInterfaceId interfaceId, CanDbMessage *dbMsg);
     void interfaceChanged(CanInterfaceId interfaceId);
 
 public slots:
     void updateMessage(const CanMessage &msg);
+    void stopAll();
 
 private slots:
     void on_lineEditSearchAvailable_textChanged(const QString &text);
@@ -98,6 +100,7 @@ private:
 
     QList<CyclicMessage> _cyclicMessages;
 
+    bool isLoading;
     void updateAvailableList();
     void updateActiveList();
     void updateRowUI(int row);

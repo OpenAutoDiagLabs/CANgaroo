@@ -65,6 +65,7 @@ TxGeneratorWindow::TxGeneratorWindow(QWidget *parent, Backend &backend) :
     updateMeasurementState();
     populateDbcMessages();
     updateActiveList();
+    isLoading = false;
 }
 
 TxGeneratorWindow::~TxGeneratorWindow()
@@ -191,6 +192,7 @@ void TxGeneratorWindow::on_btnAddToList_released()
     if (!dbMsg) return;
 
     CyclicMessage cm;
+    cm.msg = CanMessage(); // Ensure fresh instance
     cm.msg.setId(dbMsg->getRaw_id());
     cm.msg.setLength(dbMsg->getDlc());
     cm.msg.setExtended(dbMsg->getRaw_id() > 0x7FF);
@@ -212,6 +214,7 @@ void TxGeneratorWindow::on_btnAddManual_released()
     if (!ok) return;
 
     CyclicMessage cm;
+    cm.msg = CanMessage(); // Ensure fresh instance
     cm.msg.setId(id);
     cm.msg.setLength(ui->spinManualDlc->value());
     cm.msg.setExtended(id > 0x7FF || ui->lineManualId->text().length() > 3);
@@ -265,6 +268,14 @@ void TxGeneratorWindow::on_btnSendOnce_released()
             if (intf && intf->isOpen()) {
                 cm.msg.setInterfaceId(cm.interfaceId);
                 intf->sendMessage(cm.msg);
+                if (ui->cbShowInTrace->isChecked()) {
+                    CanMessage loopback = cm.msg;
+                    loopback.setRX(false);
+                    struct timeval tv;
+                    gettimeofday(&tv, NULL);
+                    loopback.setTimestamp(tv);
+                    emit loopbackFrame(loopback);
+                }
             } else {
                 QString errorMsg = QString("TxGeneratorWindow: Interface %1 is not open.").arg(intf ? intf->getName() : QString::number(cm.interfaceId));
                 log_error(errorMsg);
@@ -349,6 +360,7 @@ void TxGeneratorWindow::on_treeAvailable_itemDoubleClicked(QTreeWidgetItem *item
 
 void TxGeneratorWindow::on_treeActive_itemSelectionChanged()
 {
+    isLoading = true;
     QList<QTreeWidgetItem*> selected = ui->treeActive->selectedItems();
     if (!selected.isEmpty()) {
         int row = ui->treeActive->indexOfTopLevelItem(selected.first());
@@ -386,6 +398,7 @@ void TxGeneratorWindow::on_treeActive_itemSelectionChanged()
             emit messageSelected(cm.msg, cm.name, cm.interfaceId, cm.dbMsg);
         }
     }
+    isLoading = false;
 }
 
 void TxGeneratorWindow::on_treeActive_itemChanged(QTreeWidgetItem *item, int column)
@@ -470,6 +483,14 @@ void TxGeneratorWindow::onSendTimerTimeout()
             if (intf && intf->isOpen()) {
                 cm.msg.setInterfaceId(cm.interfaceId);
                 intf->sendMessage(cm.msg);
+                if (ui->cbShowInTrace->isChecked()) {
+                    CanMessage loopback = cm.msg;
+                    loopback.setRX(false);
+                    struct timeval tv_loop;
+                    gettimeofday(&tv_loop, NULL);
+                    loopback.setTimestamp(tv_loop);
+                    emit loopbackFrame(loopback);
+                }
                 cm.lastSent = now_ms;
             } else {
                 QString errorMsg = QString("TxGeneratorWindow: Cyclic - Interface %1 is not open.").arg(intf ? intf->getName() : QString::number(cm.interfaceId));
@@ -492,6 +513,9 @@ void TxGeneratorWindow::updateMeasurementState()
     bool running = _backend.isMeasurementRunning();
     ui->btnSendOnce->setEnabled(running);
     ui->groupBoxActive->setEnabled(running);
+    if (!running) {
+        stopAll();
+    }
 }
 
 void TxGeneratorWindow::updateActiveList()
@@ -578,16 +602,28 @@ void TxGeneratorWindow::updateRowUI(int row)
 
 void TxGeneratorWindow::updateMessage(const CanMessage &msg)
 {
+    if (isLoading) return;
+
     int row = ui->treeActive->currentIndex().row();
     if (row >= 0 && row < _cyclicMessages.size()) {
         _cyclicMessages[row].msg = msg;
         // Also update the tree item text if ID changed
-        QTreeWidgetItem *item = ui->treeActive->currentItem();
+        QTreeWidgetItem *item = ui->treeActive->topLevelItem(row);
         if (item) {
             item->setText(1, "0x" + QString("%1").arg(msg.getId(), 3, 16, QChar('0')).toUpper());
             item->setText(4, QString::number(msg.getLength()));
         }
     }
+}
+
+void TxGeneratorWindow::stopAll()
+{
+    for (int i = 0; i < _cyclicMessages.size(); ++i) {
+        _cyclicMessages[i].enabled = false;
+        updateRowUI(i);
+    }
+    ui->btnBulkRun->setChecked(false);
+    ui->btnBulkStop->setChecked(false);
 }
 
 QSize TxGeneratorWindow::sizeHint() const

@@ -21,6 +21,7 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "version.h"
 
 #include <QtWidgets>
 #include <QMdiArea>
@@ -29,6 +30,8 @@
 #include <QTimer>
 #include <QDomDocument>
 #include <QPalette>
+#include <QDesktopServices>
+#include <QUrl>
 
 #include <core/MeasurementSetup.h>
 #include <core/CanTrace.h>
@@ -57,6 +60,11 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     _baseWindowTitle = windowTitle();
+
+    QLabel* versionLabel = new QLabel(this);
+    versionLabel->setText(QString("v%1").arg(CANGAROO_VERSION_STR));
+    versionLabel->setStyleSheet("padding-right: 15px; color: #000000; font-weight: bold; font-size: 11px;");
+    statusBar()->addPermanentWidget(versionLabel);
 
     QIcon icon(":/assets/cangaroo.png");
     setWindowIcon(icon);
@@ -493,7 +501,8 @@ QMainWindow *MainWindow::createTraceWindow(QString title)
         title = tr("Trace");
     }
     QMainWindow *mm = createTab(title);
-    mm->setCentralWidget(new TraceWindow(mm, backend()));
+    TraceWindow *trace = new TraceWindow(mm, backend());
+    mm->setCentralWidget(trace);
 
     QDockWidget *dockLogWidget = addLogWidget(mm);
     QDockWidget *dockStatusWidget = addStatusWidget(mm);
@@ -505,6 +514,7 @@ QMainWindow *MainWindow::createTraceWindow(QString title)
     if (gen && rawtx) {
         connect(gen, &TxGeneratorWindow::messageSelected, rawtx, &RawTxWindow::setMessage);
         connect(rawtx, &RawTxWindow::messageUpdated, gen, &TxGeneratorWindow::updateMessage);
+        connect(gen, &TxGeneratorWindow::loopbackFrame, trace, &TraceWindow::addMessage);
     }
 
 
@@ -659,7 +669,7 @@ void MainWindow::showAboutDialog()
        "CANgaroo\n"
        "Open Source CAN bus analyzer\n"
        "\n"
-       "version 0.4.3\n"
+       "version " CANGAROO_VERSION_STR "\n"
        "\n"
        "(c)2015-2017 Hubert Denkmair\n"
        "(c)2026 Jayachandran Dharuman"
@@ -683,6 +693,10 @@ void MainWindow::startMeasurement()
 void MainWindow::stopMeasurement()
 {
     backend().stopMeasurement();
+
+    foreach (TxGeneratorWindow *gen, findChildren<TxGeneratorWindow*>()) {
+        gen->stopAll();
+    }
 }
 
 void MainWindow::saveTraceToFile()
@@ -743,6 +757,11 @@ void MainWindow::on_action_WorkspaceOpen_triggered()
 void MainWindow::on_action_WorkspaceNew_triggered()
 {
     newWorkspace();
+}
+
+void MainWindow::on_actionReport_Issue_triggered()
+{
+    QDesktopServices::openUrl(QUrl("https://github.com/OpenAutoDiagLabs/CANgaroo/issues"));
 }
 
 void MainWindow::on_actionGenerator_View_triggered()

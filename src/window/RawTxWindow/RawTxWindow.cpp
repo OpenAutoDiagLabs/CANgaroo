@@ -463,6 +463,8 @@ void RawTxWindow::refreshInterfaces()
 
 void RawTxWindow::reflash_can_msg()
 {
+    if (_is_setting_message) return;
+
     bool en_extended = ui->checkBox_IsExtended->isChecked();
     bool en_rtr = ui->checkBox_IsRTR->isChecked();
     bool en_brs = ui->checkbox_BRS->isChecked();
@@ -853,6 +855,7 @@ void RawTxWindow::fieldAddress_textChanged(QString str)
 void RawTxWindow::setMessage(const CanMessage &msg, const QString &name, CanInterfaceId interfaceId, CanDbMessage *dbMsg)
 {
     _is_setting_message = true;
+    
     this->setEnabled(true);
     Q_UNUSED(name);
 
@@ -887,15 +890,20 @@ void RawTxWindow::setMessage(const CanMessage &msg, const QString &name, CanInte
     ui->checkbox_FD->setChecked(isFD);
     ui->checkbox_BRS->setChecked(isBRS);
 
-    int index = ui->comboBoxDLC->findData(dlc);
-    if (index != -1) {
-        ui->comboBoxDLC->setCurrentIndex(index);
+    int dlc_index = ui->comboBoxDLC->findData(dlc);
+    if (dlc_index != -1) {
+        ui->comboBoxDLC->setCurrentIndex(dlc_index);
+    }
+    
+    // Load data bytes into fields
+    for (int i = 0; i < 64; ++i) {
+        QString fieldName = QString("fieldByte%1_%2").arg(i % 8).arg(i / 8);
+        QLineEdit *field = this->findChild<QLineEdit*>(fieldName);
+        if (field) {
+            field->setText(QString("%1").arg(msg.getByte(i), 2, 16, QChar('0')).toUpper());
+        }
     }
 
-    // Update slaved interface
-    // _slavedInterfaceId = interfaceId; // Moved to beginning
-    // this->setDisabled(0); // Moved to beginning
-    
     updateSignalTable();
 
     _is_setting_message = false;

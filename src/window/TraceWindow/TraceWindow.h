@@ -22,6 +22,7 @@
 #pragma once
 
 #include <core/ConfigurableWidget.h>
+#include <core/CanMessage.h>
 #include "TraceViewTypes.h"
 #include "TraceFilterModel.h"
 
@@ -34,6 +35,7 @@ class QDomElement;
 class QSortFilterProxyModel;
 class LinearTraceViewModel;
 class AggregatedTraceViewModel;
+class UnifiedTraceViewModel;
 
 
 class TraceWindow : public ConfigurableWidget
@@ -42,7 +44,8 @@ class TraceWindow : public ConfigurableWidget
 
 public:
     typedef enum mode {
-        mode_aggregated
+        mode_aggregated,
+        mode_unified
     } mode_t;
 
     explicit TraceWindow(QWidget *parent, Backend &backend);
@@ -55,6 +58,7 @@ public:
     virtual bool loadXML(Backend &backend, QDomElement &el);
 
 public slots:
+    void addMessage(const CanMessage &msg);
     void rowsInserted(const QModelIndex & parent, int first, int last);
 
 private slots:
@@ -63,6 +67,7 @@ private slots:
     void on_cbFilterChanged(void);
 
     void on_cbTraceClearpushButton(void);
+    void on_cbViewMode_currentIndexChanged(int index);
 
 private:
     Ui::TraceWindow *ui;
@@ -71,6 +76,8 @@ private:
     timestamp_mode_t _timestampMode;
 
     TraceFilterModel * _aggFilteredModel;
+    TraceFilterModel * _uniFilteredModel;
     AggregatedTraceViewModel *_aggregatedTraceViewModel;
+    UnifiedTraceViewModel *_unifiedTraceViewModel;
     QSortFilterProxyModel *_aggregatedProxyModel;
 };
