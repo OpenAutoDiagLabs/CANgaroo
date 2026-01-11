@@ -17,13 +17,16 @@ Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Au
 
 ## 🎥 Demo Gallery
 *Real-time capture and decoding of CAN traffic using DBC databases.*
-<br>![Cangaroo Trace View](test/trace_view.gif)<br>
+<br>![Cangaroo Trace View](img/trace_view.gif)<br>
 <!-- slide -->
 *Simulate CAN traffic with customizable periodic and manual transmissions.* 
-<br>![Cangaroo Generator View](test/generator_view.gif)<br>
+<br>![Cangaroo Generator View](img/generator_view.gif)<br>
 <!-- slide -->
-*Flexible dockable workspace optimized for multi-monitor analysis.*
-<br>![Cangaroo Overview](test/output.gif)<br>
+*UDS ISO TP*
+<br>![Cangaroo Overview](img/uds_iso_tp.gif)<br>
+<!-- slide -->
+*J1939*
+<br>![Cangaroo Overview](img/j1939.gif)<br>
 
 ---
 
@@ -156,13 +159,15 @@ We welcome contributions!
 
 ---
 
-## 📝 Changelog Summary (v0.4.3)
-* **Qt 6.10 Migration**: Full support for the latest Qt framework.
-* **SocketCAN Stability**: Resolved driver crashes during interface discovery.
-* **UI Streamlining**: Removed redundant toggles for a cleaner analysis experience.
+## 📝 Changelog Summary (v0.4.4)
+* **Unified Protocol Decoding**: Intelligent prioritization between J1939 (29-bit) and UDS/ISO-TP (11-bit) with robust Transport Protocol reassembly.
+* **Enhanced J1939 Support**: Auto-labeling for common PGNs (VIN, EEC1) and reassembled multi-frame (BAM/CM) messages.
+* **Generator Synchronization**: Global "Stop" now halts all background cyclic transmissions automatically for safe simulation teardown.
+* **Responsive State Management**: Replaced unstable signal blocking with a "Safe Flag Pattern" to ensure responsive UI editing without data corruption.
+* **Generator Loopback**: Transmitted frames are now visible in the Trace View (TX labels), providing a complete view of bus activity.
 
 ---
 
-**Keywords**: CAN bus analyzer Linux, SocketCAN GUI, CAN FD decoder, automotive diagnostic tool, open-source CAN tool.
+**Keywords**: CAN bus analyzer Linux, SocketCAN GUI, CAN FD decoder, J1939 analyzer, UDS ISO-TP decoder, automotive diagnostic tool.
 
 **License**: [GPL-3.0+](LICENSE)

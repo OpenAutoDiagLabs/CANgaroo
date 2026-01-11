@@ -198,6 +198,10 @@ QVariant AggregatedTraceViewModel::data_DisplayRole(const QModelIndex &index, in
     AggregatedTraceViewItem *item = (AggregatedTraceViewItem *)index.internalPointer();
     if (!item) { return QVariant(); }
 
+    if (index.column() == column_index) {
+        return (item->parent() == _rootItem) ? QVariant((uint32_t)(index.row() + 1)) : QVariant();
+    }
+
     if (item->parent() == _rootItem) { // CanMessage row
         return data_DisplayRole_Message(index, role, item->_lastmsg, item->_prevmsg);
     } else { // CanSignal Row
@@ -212,15 +216,7 @@ QVariant AggregatedTraceViewModel::data_TextColorRole(const QModelIndex &index, 
     if (!item) { return QVariant(); }
 
     if (item->parent() == _rootItem) { // CanMessage row
-
-        struct timeval now;
-        gettimeofday(&now, 0);
-
-        int color = getTimeDiff(item->_lastmsg.getTimestamp(), now)*100;
-        if (color>200) { color = 200; }
-        if (color<0) { color = 0; }
-
-        return QVariant::fromValue(QColor(color, color, color));
+        return QColor(Qt::black);
     } else { // CanSignal Row
         return data_TextColorRole_Signal(index, role, item->parent()->_lastmsg);
     }

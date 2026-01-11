@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# 1. CHECK INPUT
-if [ -z "$1" ]; then
-    echo "Usage: $0 <version>"
-    echo "Example: $0 0.4.3"
+# 1. DETECT VERSION
+if [ -f "VERSION" ]; then
+    VERSION=$(cat VERSION | tr -d '\n')
+    echo "Detected Version: $VERSION"
+else
+    echo "Error: VERSION file not found!"
     exit 1
 fi
-
-VERSION=$1
 APP_NAME="cangaroo"
 BINARY_PATH="./bin/${APP_NAME}" 
 ARCH=$(uname -m)

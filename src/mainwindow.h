@@ -79,6 +79,7 @@ private slots:
     void on_action_TraceClear_triggered();
     void on_actionCan_Status_View_triggered();
     void on_actionGenerator_View_triggered();
+    void on_actionReport_Issue_triggered();
 
 private:
     Ui::MainWindow *ui;
