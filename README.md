@@ -22,11 +22,11 @@ Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Au
 *Simulate CAN traffic with customizable periodic and manual transmissions.* 
 <br>![Cangaroo Generator View](img/generator_view.gif)<br>
 <!-- slide -->
-*UDS ISO TP*
-<br>![Cangaroo Overview](img/uds_iso_tp.gif)<br>
+*Seamlessly reassemble and decode UDS (Unified Diagnostic Services) messages over the ISO-TP transport layer.*
+<br>![Cangaroo UDS ISO-TP](img/uds_iso_tp.gif)<br>
 <!-- slide -->
-*J1939*
-<br>![Cangaroo Overview](img/j1939.gif)<br>
+*Robust analysis of J1939 heavy-duty protocols, supporting Multi-frame (BAM) reassembly and PGN identification.*
+<br>![Cangaroo J1939](img/j1939.gif)<br>
 
 ---
 
