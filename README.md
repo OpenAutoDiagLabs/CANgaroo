@@ -70,7 +70,46 @@ If you downloaded a pre-compiled release tarball, use the included setup script 
 
 ---
 
-## 🚦 Quick Start Guide
+## � Hardware & SocketCAN (Linux)
+
+Cangaroo leverages the standard Linux **SocketCAN** subsystem. This means it works with virtually any CAN interface supported by the Linux kernel.
+
+### Supported Hardware
+*   **PEAK-System (PCAN)**: 
+    *   PCAN-USB, PCAN-USB Pro, PCAN-PCIe, etc. (Native driver: `peak_usb`).
+*   **Native USB-CAN Adapters**: 
+    *   [CANable](https://canable.io/) (with Candlelight firmware)
+    *   Kvaser USB/CAN Leaf
+    *   Candlelight compatible devices (e.g., MKS CANable, cantact)
+*   **USB SLCAN Adapters**:
+    *   CANable (with set-default SLCAN firmware)
+    *   Arduino-based CAN shields (running SLCAN sketches)
+*   **Industrial / Embedded CAN**:
+    *   PCIe/mPCIe CAN cards
+    *   Embedded CAN controllers on SoCs (e.g., Raspberry Pi with MCP2515)
+*   **Remote / Network CAN**: 
+    *   [CANblaster](https://github.com/OpenAutoDiagLabs/CANblaster) (UDP)
+    *   tcpcan / candlelight-over-ethernet
+
+### Setup Instructions
+
+#### 1. Native Drivers (gs_usb, pcan, etc.)
+Most professional hardware is recognized automatically as `can0`, `can1`, etc. To bring up an interface at 500k bitrate:
+```bash
+sudo ip link set can0 up type can bitrate 500000
+```
+
+#### 2. USB SLCAN (Adapters using Serial/COM)
+If your device uses SLCAN (like original CANable firmware), use `slcand`:
+```bash
+# Connect device as /dev/ttyUSB0 and set bitrate (S6 = 500k)
+sudo slcand -o -s6 -t hw -S 115200 /dev/ttyUSB0 slcan0
+sudo ip link set slcan0 up
+```
+
+---
+
+## �🚦 Quick Start Guide
 
 ### 1. Zero-Hardware Testing (Virtual CAN)
 ```bash
