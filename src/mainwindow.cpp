@@ -75,6 +75,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionGraph_View_2, SIGNAL(triggered()), this, SLOT(addGraphWidget()));
     connect(ui->actionSetup, SIGNAL(triggered()), this, SLOT(showSetupDialog()));
     connect(ui->actionTransmit_View, SIGNAL(triggered()), this, SLOT(addRawTxWidget()));
+    connect(ui->actionGenerator_View, SIGNAL(triggered()), this, SLOT(on_actionGenerator_View_triggered()));
+
+    QAction *actionStandaloneGraph = new QAction(tr("Standalone Graph"), this);
+    actionStandaloneGraph->setShortcut(QKeySequence("Ctrl+Shift+B"));
+    ui->menuWindow->addAction(actionStandaloneGraph);
+    connect(actionStandaloneGraph, &QAction::triggered, this, &MainWindow::createStandaloneGraphWindow);
 
     connect(ui->actionStart_Measurement, SIGNAL(triggered()), this, SLOT(startMeasurement()));
     connect(ui->btnStartMeasurement, SIGNAL(released()), this, SLOT(startMeasurement()));
@@ -232,6 +238,15 @@ void MainWindow::clearWorkspace()
         ui->mainTabs->removeTab(0);
         delete w;
     }
+
+    // Close and clear standalone windows to prevent dangling pointers to signals
+    while (!_standaloneGraphWindows.isEmpty()) {
+        GraphWindow *gw = _standaloneGraphWindows.takeFirst();
+        if (gw) {
+            gw->close(); // This will trigger WA_DeleteOnClose
+        }
+    }
+
     _workspaceFileName.clear();
     setWorkspaceModified(false);
 }
@@ -552,6 +567,20 @@ QMainWindow *MainWindow::createGraphWindow(QString title)
     addLogWidget(mm);
 
     return mm;
+}
+
+void MainWindow::createStandaloneGraphWindow()
+{
+    GraphWindow *gw = new GraphWindow(nullptr, backend());
+    gw->setWindowTitle(tr("Standalone Graph"));
+    gw->setAttribute(Qt::WA_DeleteOnClose);
+    
+    _standaloneGraphWindows.append(gw);
+    connect(gw, &QObject::destroyed, this, [this, gw]() {
+        _standaloneGraphWindows.removeAll(gw);
+    });
+
+    gw->show();
 }
 
 void MainWindow::addGraphWidget(QMainWindow *parent)
