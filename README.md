@@ -27,6 +27,9 @@ Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Au
 <!-- slide -->
 *Robust analysis of J1939 heavy-duty protocols, supporting Multi-frame (BAM) reassembly and PGN identification.*
 <br>![Cangaroo J1939](img/j1939.gif)<br>
+<!-- slide -->
+*Visualize CAN signals in real-time with Time-series, Scatter charts, Text view, and interactive Gauges.*
+<br>![Cangaroo Graph View](img/graph_view.gif)<br>
 
 ---
 
@@ -35,7 +38,7 @@ Cangaroo is a professional-grade CAN bus analyzer designed for engineers in **Au
 *   **Real-time CAN/CAN-FD Decoding**: Support for standard and high-speed flexible data-rate frames.
 *   **Wide Hardware Compatibility**: Seamlessly works with **SocketCAN** (Linux), **CANable** (SLCAN), **Candlelight**, and **CANblaster** (UDP).
 *   **DBC Database Support**: Load multiple `.dbc` files to instantly decode frames into human-readable signals.
-*   **Data Visualization**: Integrated graphing tools to visualize signal changes over time.
+*   **Powerful Data Visualization**: Integrated Graphing tools supporting Time-series, Scatter charts, Text-based monitoring, and interactive Gauge views with zoom and live tooltips.
 *   **Advanced Filtering & Logging**: Isolate critical data with live filters and export captures for offline analysis.
 *   **Modern Workspace**: A clean, dockable userinterface optimized for multi-monitor setups.
 
@@ -197,6 +200,14 @@ We welcome contributions!
 *   **Lead Maintainer**: [Jayachandran Dharuman](https://github.com/OpenAutoDiagLabs/cangaroo)
 
 ---
+
+## 📝 Changelog Summary (v0.4.5)
+* **New Graph View Feature**: Added a versatile visualization suite including:
+    * **Time-series Graph**: Smooth real-time signal plotting with interactive cursors and tooltips.
+    * **Scatter Chart**: Visualize signal correlations and distributions.
+    * **Text View**: Compact, live-updating text representation of signal values.
+    * **Gauge View**: High-visibility analog/digital gauges with customizable column layouts.
+* **Interactive Analysis Tools**: Integrated zooming (In/Out/Reset), signal color customization, and absolute timestamp cursors.
 
 ## 📝 Changelog Summary (v0.4.4)
 * **Unified Protocol Decoding**: Intelligent prioritization between J1939 (29-bit) and UDS/ISO-TP (11-bit) with robust Transport Protocol reassembly.

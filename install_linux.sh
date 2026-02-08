@@ -121,7 +121,8 @@ echo "Select an option:"
 echo "1) Install only dependencies"
 echo "2) Install dependencies and build Cangaroo"
 echo "3) Install dependencies, build Cangaroo, and install to /usr/local/bin"
-read -p "Enter choice [1-3]: " choice
+echo "4) Build Cangaroo only"
+read -p "Enter choice [1-4]: " choice
 
 case $choice in
     1)
@@ -136,6 +137,9 @@ case $choice in
         build_cangaroo
         install_to_bin
         ;;
+    4)
+        build_cangaroo
+        ;;
     *)
         echo -e "${RED}Invalid choice. Exiting.${NC}"
         exit 1
@@ -144,7 +148,7 @@ esac
 
 echo "-------------------------------------------------------"
 echo -e "${GREEN}Setup completed successfully!${NC}"
-if [[ "$choice" -eq 2 ]]; then
+if [[ "$choice" -eq 2 || "$choice" -eq 4 ]]; then
     echo "You can run CANgaroo from: ./bin/cangaroo"
 elif [[ "$choice" -eq 3 ]]; then
     echo "You can now run CANgaroo by simply typing 'cangaroo' in your terminal."

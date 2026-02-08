@@ -24,9 +24,10 @@
 #include <core/Backend.h>
 #include <core/ConfigurableWidget.h>
 #include <core/MeasurementSetup.h>
-#include <QtCharts/QChartView>
-#include <QtCharts/QtCharts>
-#include <QtCharts/QLineSeries>
+#include "VisualizationWidget.h"
+
+class QComboBox;
+class QLabel;
 
 namespace Ui {
 class GraphWindow;
@@ -46,13 +47,28 @@ public:
     virtual bool loadXML(Backend &backend, QDomElement &el);
 
 private slots:
-    void testAddData(qreal new_yval);
+    void onViewTypeChanged(int index);
+    void onAddSignalClicked();
+    void onClearClicked();
+    void onDurationChanged(int index);
+    void onZoomInClicked();
+    void onZoomOutClicked();
+    void onResetZoomClicked();
+    void onMessageEnqueued(int idx);
+    void onMouseMove(QMouseEvent *event);
+    void onLegendMarkerClicked();
+    void onColumnSelectorChanged(int val);
 
 private:
-    QLineSeries *data_series;
-    QChart *data_chart;
-    uint32_t testcount;
-
+    void connectLegendMarkers(VisualizationWidget* v);
     Ui::GraphWindow *ui;
+    QComboBox *_columnSelector = nullptr;
+    QLabel *_columnLabel = nullptr;
+    QWidget *_columnContainer = nullptr;
     Backend &_backend;
+    double _sessionStartTime = -1.0;
+    QList<VisualizationWidget*> _visualizations;
+    VisualizationWidget* _activeVisualization;
+
+    void setupVisualizations();
 };

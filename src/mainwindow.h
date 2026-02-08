@@ -56,6 +56,7 @@ protected:
 public slots:
     QMainWindow *createTraceWindow(QString title=QString());
     QMainWindow *createGraphWindow(QString title=QString());
+    void createStandaloneGraphWindow();
     void addGraphWidget(QMainWindow *parent=0);
     QDockWidget *addRawTxWidget(QMainWindow *parent=0);
     QDockWidget *addLogWidget(QMainWindow *parent=0);
@@ -112,4 +113,5 @@ private:
     void setWorkspaceModified(bool modified);
     int askSaveBecauseWorkspaceModified();
 
+    QList<class GraphWindow*> _standaloneGraphWindows;
 };
