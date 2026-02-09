@@ -24,6 +24,7 @@
 #include <QMainWindow>
 #include <QList>
 #include <core/Backend.h>
+#include <QPushButton>
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -49,6 +50,8 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+
+    void setTheme(const QString &theme);
 
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
@@ -81,6 +84,11 @@ private slots:
     void on_actionCan_Status_View_triggered();
     void on_actionGenerator_View_triggered();
     void on_actionReport_Issue_triggered();
+    void onThemeToggleClicked();
+
+private:
+    QString _currentTheme;
+    QPushButton *_btnThemeToggle;
 
 private:
     Ui::MainWindow *ui;

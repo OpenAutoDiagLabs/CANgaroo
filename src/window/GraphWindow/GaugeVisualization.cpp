@@ -44,7 +44,9 @@ void GaugeWidget::paintEvent(QPaintEvent *)
     painter.scale(side / 200.0, side / 200.0);
 
     // Draw background ring (Ghost Bar)
-    painter.setPen(QPen(QColor(240, 240, 240), 18, Qt::SolidLine, Qt::RoundCap));
+    QColor ghostColor = palette().color(QPalette::WindowText);
+    ghostColor.setAlpha(30);
+    painter.setPen(QPen(ghostColor, 18, Qt::SolidLine, Qt::RoundCap));
     painter.drawArc(-85, -85, 170, 170, -30 * 16, 240 * 16);
 
     // Active Radial Bar (The colored arc)
@@ -57,7 +59,7 @@ void GaugeWidget::paintEvent(QPaintEvent *)
     painter.drawArc(-85, -85, 170, 170, 210 * 16 - span, span);
 
     // Text: Value (Primary Readout, Centered)
-    painter.setPen(QColor(33, 37, 41)); // High contrast dark gray
+    painter.setPen(palette().color(QPalette::WindowText));
     QFont font = painter.font();
     font.setPixelSize(40);
     font.setBold(true);
@@ -68,14 +70,16 @@ void GaugeWidget::paintEvent(QPaintEvent *)
     font.setPixelSize(16);
     font.setBold(false);
     painter.setFont(font);
-    painter.setPen(QColor(108, 117, 125));
+    QColor unitColor = palette().color(QPalette::WindowText);
+    unitColor.setAlpha(160);
+    painter.setPen(unitColor);
     painter.drawText(QRect(-70, 15, 140, 20), Qt::AlignCenter, _unit);
 
     // Text: Name (Bottom Center)
     font.setPixelSize(13);
     font.setBold(true);
     painter.setFont(font);
-    painter.setPen(Qt::black);
+    painter.setPen(palette().color(QPalette::WindowText));
     painter.drawText(QRect(-100, 75, 200, 25), Qt::AlignCenter, _name);
 }
 

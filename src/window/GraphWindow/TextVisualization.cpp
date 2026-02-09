@@ -107,10 +107,23 @@ void TextVisualization::createSignalCard(CanDbSignal *signal)
     QFrame *card = new QFrame(_container);
     card->setFrameStyle(QFrame::NoFrame);
     
-    // Zebra striping
+    // Zebra striping using palette
     bool isEven = (_signalDataMap.size() % 2 == 0);
-    card->setStyleSheet(QString("QFrame { background-color: %1; border-bottom: 1px solid #dee2e6; }")
-                        .arg(isEven ? "#ffffff" : "#f8f9fa"));
+    QColor base = palette().color(QPalette::Base);
+    QColor alternate = palette().color(QPalette::AlternateBase);
+    if (alternate == base) {
+        // Fallback if palette doesn't have distinct alternate
+        alternate = base.lighter(105);
+        if (base.value() > 200) alternate = base.darker(105);
+    }
+    
+    QColor bg = isEven ? base : alternate;
+    QColor border = palette().color(QPalette::WindowText);
+    border.setAlpha(30);
+
+    card->setStyleSheet(QString("QFrame { background-color: %1; border-bottom: 1px solid %2; }")
+                        .arg(bg.name())
+                        .arg(border.name()));
     card->setMinimumHeight(50);
     card->setFixedHeight(50); // Locked height for stability
 
@@ -127,7 +140,7 @@ void TextVisualization::createSignalCard(CanDbSignal *signal)
 
     // 2. Signal Name (Expanding)
     QLabel *nameLabel = new QLabel(signal->name(), card);
-    nameLabel->setStyleSheet("font-weight: bold; font-size: 13px; color: #212529;"); // High contrast
+    nameLabel->setStyleSheet("font-weight: bold; font-size: 13px;"); 
     nameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     // Elide text if too long
     QFontMetrics fm(nameLabel->font());
@@ -137,18 +150,18 @@ void TextVisualization::createSignalCard(CanDbSignal *signal)
     // Add stretch to push value to the right (dashboard style)
     layout->addStretch();
 
-    // 3. Value (Fixed Width, Monospace, High Contrast)
+    // 3. Value (Fixed Width, Monospace)
     QLabel *valueLabel = new QLabel("0.00", card);
     valueLabel->setFixedWidth(120);
     valueLabel->setMinimumWidth(100);
-    valueLabel->setStyleSheet("font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold; color: #003366;"); // Dark Blue for high contrast
+    valueLabel->setStyleSheet("font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold;"); 
     valueLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     layout->addWidget(valueLabel);
     
-    // 4. Unit (Fixed Width, High Contrast)
+    // 4. Unit (Fixed Width)
     QLabel *unitLabel = new QLabel(signal->getUnit(), card);
     unitLabel->setFixedWidth(60);
-    unitLabel->setStyleSheet("font-family: Arial; font-size: 12px; color: #495057; font-weight: bold;"); // Darker unit
+    unitLabel->setStyleSheet("font-family: Arial; font-size: 12px; font-weight: bold;"); 
     unitLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     layout->addWidget(unitLabel);
 

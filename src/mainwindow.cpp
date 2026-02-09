@@ -63,7 +63,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QLabel* versionLabel = new QLabel(this);
     versionLabel->setText(QString("v%1").arg(CANGAROO_VERSION_STR));
-    versionLabel->setStyleSheet("padding-right: 15px; color: #000000; font-weight: bold; font-size: 11px;");
+    versionLabel->setStyleSheet("padding-right: 15px; font-weight: bold; font-size: 11px;");
     statusBar()->addPermanentWidget(versionLabel);
 
     QIcon icon(":/assets/cangaroo.png");
@@ -112,6 +112,29 @@ MainWindow::MainWindow(QWidget *parent) :
     _setupDlg = new SetupDialog(Backend::instance(), 0);
 
     _showSetupDialog_first = false;
+
+    // Theme Toggle Button in top-left (actually after spacer, so top-right)
+    _btnThemeToggle = new QPushButton(this);
+    _btnThemeToggle->setFixedSize(32, 32);
+    _btnThemeToggle->setCursor(Qt::PointingHandCursor);
+    _btnThemeToggle->setToolTip(tr("Toggle Dark/Light Mode"));
+    _btnThemeToggle->setFlat(true);
+    _btnThemeToggle->setStyleSheet(
+        "QPushButton {"
+        "  font-size: 18px;"
+        "  border-radius: 16px;"
+        "  background: transparent;"
+        "}"
+        "QPushButton:hover {"
+        "  background: rgba(0, 0, 0, 0.1);"
+        "}"
+    );
+    
+    ui->horizontalLayoutControls->addWidget(_btnThemeToggle);
+    connect(_btnThemeToggle, &QPushButton::clicked, this, &MainWindow::onThemeToggleClicked);
+
+    // Default to Light
+    setTheme("light");
 
     setStyleSheet(
         "QMainWindow::separator {"
@@ -210,10 +233,7 @@ Backend &MainWindow::backend()
 QMainWindow *MainWindow::createTab(QString title)
 {
     QMainWindow *mm = new QMainWindow(this);
-    QPalette pal(palette());
-    pal.setColor(QPalette::Window, QColor(0xeb, 0xeb, 0xeb));
     mm->setAutoFillBackground(true);
-    mm->setPalette(pal);
     ui->mainTabs->addTab(mm, title);
     return mm;
 }
@@ -796,5 +816,69 @@ void MainWindow::on_actionReport_Issue_triggered()
 void MainWindow::on_actionGenerator_View_triggered()
 {
     addTxGeneratorWidget();
+}
+
+void MainWindow::onThemeToggleClicked()
+{
+    if (_currentTheme == "light") {
+        setTheme("dark");
+    } else {
+        setTheme("light");
+    }
+}
+
+void MainWindow::setTheme(const QString &theme)
+{
+    _currentTheme = theme;
+
+    if (theme == "light") {
+        qApp->setPalette(style()->standardPalette());
+        qApp->setStyleSheet("");
+        if (_btnThemeToggle) {
+            _btnThemeToggle->setText("🌙");
+            _btnThemeToggle->setStyleSheet(
+                "QPushButton {"
+                "  font-size: 18px;"
+                "  border-radius: 16px;"
+                "  background: transparent;"
+                "}"
+                "QPushButton:hover {"
+                "  background: rgba(0, 0, 0, 0.1);"
+                "}"
+            );
+        }
+    } else if (theme == "dark") {
+        QPalette darkPalette;
+        darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
+        darkPalette.setColor(QPalette::WindowText, Qt::white);
+        darkPalette.setColor(QPalette::Base, QColor(25, 25, 25));
+        darkPalette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
+        darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+        darkPalette.setColor(QPalette::ToolTipText, Qt::white);
+        darkPalette.setColor(QPalette::Text, Qt::white);
+        darkPalette.setColor(QPalette::Button, QColor(53, 53, 53));
+        darkPalette.setColor(QPalette::ButtonText, Qt::white);
+        darkPalette.setColor(QPalette::BrightText, Qt::red);
+        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+        qApp->setPalette(darkPalette);
+        qApp->setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
+        
+        if (_btnThemeToggle) {
+            _btnThemeToggle->setText("☀️");
+            _btnThemeToggle->setStyleSheet(
+                "QPushButton {"
+                "  font-size: 18px;"
+                "  border-radius: 16px;"
+                "  background: transparent;"
+                "  color: white;"
+                "}"
+                "QPushButton:hover {"
+                "  background: rgba(255, 255, 255, 0.1);"
+                "}"
+            );
+        }
+    }
 }
 

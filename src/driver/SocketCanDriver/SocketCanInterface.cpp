@@ -91,6 +91,17 @@ QList<CanTiming> SocketCanInterface::getAvailableBitrates()
         }
     }
 
+    // Add CAN FD Data Bitrates if supported
+    if (supportsCanFD()) {
+        QList<unsigned> fdBitrates({500000, 1000000, 2000000, 4000000, 5000000, 8000000});
+        foreach (unsigned br, bitrates) {
+            foreach (unsigned fdbr, fdBitrates) {
+                // For simplicity, we add FD variants of common arbitration bitrates
+                retval << CanTiming(i++, br, fdbr, 800, 800);
+            }
+        }
+    }
+
     return retval;
 }
 
@@ -148,28 +159,52 @@ void SocketCanInterface::applyConfig(const MeasurementInterface &mi)
         return;
     }
 
-    log_info(QString("calling canifconfig to reconfigure interface %1").arg(getName()));
-    QStringList sl = buildCanIfConfigArgs(mi);
-    sl.prepend("canifconfig");
-    log_info(sl.join(" "));
+    QString cmd;
+    QStringList args;
 
-    QProcess canIfConfig;
-    canIfConfig.start("canifconfig", buildCanIfConfigArgs(mi));
-    if (!canIfConfig.waitForFinished()) {
-        log_error(QString("timeout waiting for canifconfig"));
+    // Use ip link if CAN FD is requested, as it's the standard way now
+    if (mi.isCanFD()) {
+        log_info(QString("calling ip link to reconfigure interface %1 (CAN FD)").arg(getName()));
+        
+        // First bring interface down
+        QProcess::execute("ip", {"link", "set", getName(), "down"});
+        
+        cmd = "ip";
+        args << "link" << "set" << getName() << "up" << "type" << "can";
+        args << "bitrate" << QString::number(mi.bitrate());
+        args << "sample-point" << QString::number((float)mi.samplePoint()/1000.0, 'f', 3);
+        args << "dbitrate" << QString::number(mi.fdBitrate());
+        args << "dsample-point" << QString::number((float)mi.fdSamplePoint()/1000.0, 'f', 3);
+        args << "fd" << "on";
+        
+        if (mi.doAutoRestart()) {
+            args << "restart-ms" << QString::number(mi.autoRestartMs());
+        }
+
+    } else {
+        log_info(QString("calling canifconfig to reconfigure interface %1").arg(getName()));
+        cmd = "canifconfig";
+        args = buildCanIfConfigArgs(mi);
+    }
+
+    log_info(cmd + " " + args.join(" "));
+
+    QProcess proc;
+    proc.start(cmd, args);
+    if (!proc.waitForFinished()) {
+        log_error(QString("timeout waiting for %1").arg(cmd));
         return;
     }
 
-    if (canIfConfig.exitStatus()!=QProcess::NormalExit) {
-        log_error(QString("canifconfig crashed"));
+    if (proc.exitStatus()!=QProcess::NormalExit) {
+        log_error(QString("%1 crashed").arg(cmd));
         return;
     }
 
-    if (canIfConfig.exitCode() != 0) {
-        log_error(QString("canifconfig failed: ") + QString(canIfConfig.readAllStandardError()).trimmed());
+    if (proc.exitCode() != 0) {
+        log_error(QString("%1 failed: ").arg(cmd) + QString(proc.readAllStandardError()).trimmed());
         return;
     }
-
 }
 
 #if (LIBNL_CURRENT<=216)
@@ -482,7 +517,7 @@ void SocketCanInterface::sendMessage(const CanMessage &msg) {
 
 bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms) {
 
-    struct can_frame frame;
+    struct canfd_frame frame;
     struct timespec ts_rcv;
     struct timeval tv_rcv;
     struct timeval timeout;
@@ -498,8 +533,8 @@ bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
 
     int rv = select(_fd+1, &fdset, NULL, NULL, &timeout);
     if (rv > 0) {
-
-        if (::read(_fd, &frame, sizeof(struct can_frame)) < 0) {
+        int nbytes = ::read(_fd, &frame, sizeof(struct canfd_frame));
+        if (nbytes < 0) {
             return false;
         }
 
@@ -521,15 +556,19 @@ bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
             msg.setTimestamp(tv_rcv.tv_sec, tv_rcv.tv_usec);
         }
 
-        msg.setId(frame.can_id);
+        msg.setId(frame.can_id & CAN_EFF_MASK);
         msg.setExtended((frame.can_id & CAN_EFF_FLAG)!=0);
         msg.setRTR((frame.can_id & CAN_RTR_FLAG)!=0);
         msg.setErrorFrame((frame.can_id & CAN_ERR_FLAG)!=0);
         msg.setInterfaceId(getId());
 
-        uint8_t len = frame.can_dlc;
-        if (len > 8) { len = 8; }
+        bool isFD = (nbytes == CANFD_MTU);
+        msg.setFD(isFD);
+        if (isFD) {
+            msg.setBRS((frame.flags & CANFD_BRS) != 0);
+        }
 
+        uint8_t len = frame.len;
         msg.setLength(len);
         for (int i=0; i<len; i++) {
             msg.setByte(i, frame.data[i]);
