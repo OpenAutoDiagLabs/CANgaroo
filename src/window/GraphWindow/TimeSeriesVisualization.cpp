@@ -57,19 +57,20 @@ TimeSeriesVisualization::TimeSeriesVisualization(QWidget *parent, Backend &backe
     
     // Create cursor line
     _cursorLine = new QGraphicsLineItem(_chart);
-    QPen cursorPen(Qt::gray, 1, Qt::DashLine);
+    QPen cursorPen(palette().color(QPalette::WindowText), 1, Qt::DashLine);
     _cursorLine->setPen(cursorPen);
     _cursorLine->setZValue(1000); // High Z-value to be on top
     _cursorLine->hide();
 
     // Create Tooltip Box
     _tooltipBox = new QGraphicsRectItem(_chart);
-    _tooltipBox->setBrush(QBrush(Qt::white));
-    _tooltipBox->setPen(QPen(Qt::lightGray, 1));
+    _tooltipBox->setBrush(QBrush(palette().color(QPalette::ToolTipBase)));
+    _tooltipBox->setPen(QPen(palette().color(QPalette::ToolTipText), 1));
     _tooltipBox->setZValue(2000); // Very high Z-value
     _tooltipBox->hide();
 
     _tooltipText = new QGraphicsTextItem(_tooltipBox);
+    _tooltipText->setDefaultTextColor(palette().color(QPalette::ToolTipText));
     _tooltipText->setTextInteractionFlags(Qt::NoTextInteraction);
     _tooltipText->setZValue(2001);
 

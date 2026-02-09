@@ -258,9 +258,10 @@ void GenericCanSetupPage::fillSamplePointsForBitrate(CanInterface *intf, unsigne
 void GenericCanSetupPage::fillFdBitrate(CanInterface *intf, unsigned selectedBitrate)
 {
     QList<uint32_t> fdBitrates;
+    unsigned currentArbBitrate = ui->cbBitrate->currentData().toUInt();
+
     for (CanTiming t : intf->getAvailableBitrates()) {
-        if (1) {
-        //if (t.getBitrate() == selectedBitrate) {
+        if (t.getBitrate() == currentArbBitrate) {
             if (t.isCanFD() && !fdBitrates.contains(t.getBitrateFD())) {
                 fdBitrates.append(t.getBitrateFD());
             }
@@ -272,7 +273,13 @@ void GenericCanSetupPage::fillFdBitrate(CanInterface *intf, unsigned selectedBit
     for (uint32_t fd_br : fdBitrates) {
         ui->cbBitrateFD->addItem(QString::number(fd_br), fd_br);
     }
-    ui->cbBitrateFD->setCurrentText(QString::number(selectedBitrate));
+    
+    int idx = ui->cbBitrateFD->findData(selectedBitrate);
+    if (idx >= 0) {
+        ui->cbBitrateFD->setCurrentIndex(idx);
+    } else if (ui->cbBitrateFD->count() > 0) {
+        ui->cbBitrateFD->setCurrentIndex(0);
+    }
 }
 
 void GenericCanSetupPage::fillSamplePointsForFdBitrate(CanInterface *intf, unsigned selectedBitrate, unsigned selectedSamplePoint)
