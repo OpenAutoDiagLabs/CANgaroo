@@ -33,7 +33,6 @@ DecodeStatus J1939Decoder::tryDecode(const CanMessage& frame, ProtocolMessage& o
         uint32_t sessionKey = sa;
         if (m_sessions.contains(sessionKey)) {
             J1939Session& session = m_sessions[sessionKey];
-            uint8_t sn = frame.getByte(0);
             session.receivedPackets++;
             session.frames.append(frame);
             for (int i = 1; i < 8 && session.data.size() < session.expectedSize; ++i) {
@@ -43,17 +42,25 @@ DecodeStatus J1939Decoder::tryDecode(const CanMessage& frame, ProtocolMessage& o
             if (session.receivedPackets >= session.expectedPackets || session.data.size() >= session.expectedSize) {
                 outMsg.payload = session.data;
                 outMsg.rawFrames = session.frames;
-                outMsg.protocol = "j1939";
+                outMsg.protocol = "J1939";
                 outMsg.timestamp = static_cast<uint64_t>(session.frames.first().getFloatTimestamp() * 1000000.0);
                 outMsg.id = session.pgn;
                 outMsg.type = MessageType::Request; // Default for J1939
                 
                 if (session.pgn == 0xFEEC) outMsg.name = "Vehicle Identification (VIN)";
                 else if (session.pgn == 0xF004) outMsg.name = "Electronic Engine Controller 1 (EEC1)";
-                else outMsg.name = QString("j1939 pgn: %1 (0x%2)").arg(session.pgn).arg(session.pgn, 0, 16);
+                else outMsg.name = QString("PGN: 0x%2")
+                  .arg(session.pgn, 4, 16, QChar('0').toUpper());
                 
-                outMsg.description = QString("j1939 multi-frame message from sa 0x%1").arg(sa, 2, 16, QChar('0'));
-                
+                // Populate metadata from the first frame (CM header)
+                uint32_t firstId = session.frames.first().getId();
+                outMsg.metadata["Priority"] = (firstId >> 26) & 0x7;
+                outMsg.metadata["Reserved"] = (firstId >> 25) & 1;
+                outMsg.metadata["Data Page"] = (firstId >> 24) & 1;
+                outMsg.metadata["PDU Format"] = (firstId >> 16) & 0xFF;
+                outMsg.metadata["PDU Specific"] = (firstId >> 8) & 0xFF;
+                outMsg.metadata["Source Address"] = firstId & 0xFF;
+
                 m_sessions.remove(sessionKey);
                 return DecodeStatus::Completed;
             }
@@ -61,21 +68,38 @@ DecodeStatus J1939Decoder::tryDecode(const CanMessage& frame, ProtocolMessage& o
         }
     } else {
         // Single frame PGN
+        uint8_t pf = (id >> 16) & 0xFF;
+        uint8_t ps = (id >> 8) & 0xFF;
+        bool isPDU1 = pf < 240;
+
         outMsg.payload = QByteArray();
         for (int i = 0; i < frame.getLength(); ++i) {
             outMsg.payload.append(frame.getByte(i));
         }
         outMsg.rawFrames = {frame};
-        outMsg.protocol = "j1939";
+        outMsg.protocol = "J1939";
         outMsg.timestamp = static_cast<uint64_t>(frame.getFloatTimestamp() * 1000000.0);
         outMsg.id = pgn;
         outMsg.type = MessageType::Request;
         
         if (pgn == 0xFEEC) outMsg.name = "Vehicle Identification (VIN)";
         else if (pgn == 0xF004) outMsg.name = "Electronic Engine Controller 1 (EEC1)";
-        else outMsg.name = QString("j1939 pgn: %1 (0x%2)").arg(pgn).arg(pgn, 0, 16);
+        else outMsg.name = QString("PGN: 0x%2")
+                  .arg(pgn, 4, 16, QChar('0').toUpper());
         
-        outMsg.description = QString("j1939 message from sa 0x%1").arg(sa, 2, 16, QChar('0'));
+        if (isPDU1) {
+            outMsg.description = QString("PDU1 (Peer-to-Peer) from SA [0x%1] to DA [0x%2]").arg(sa, 2, 16, QChar('0').toUpper()).arg(ps, 2, 16, QChar('0').toUpper());
+        } else {
+            outMsg.description = QString("PDU2 (Broadcast) from SA [0x%1]").arg(sa, 2, 16, QChar('0').toUpper());
+        }
+
+        outMsg.metadata["Priority"] = (id >> 26) & 0x7;
+        outMsg.metadata["Reserved"] = (id >> 25) & 1;
+        outMsg.metadata["Data Page"] = (id >> 24) & 1;
+        outMsg.metadata["PDU Format"] = pf;
+        outMsg.metadata["PDU Specific"] = ps;
+        outMsg.metadata["Source Address"] = sa;
+
         return DecodeStatus::Completed;
     }
 

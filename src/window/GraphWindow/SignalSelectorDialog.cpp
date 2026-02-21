@@ -1,8 +1,21 @@
 /*
 
-  Copyright (c) 2026 Antigravity AI
+  Copyright (c) 2026 Jayachandran Dharuman
 
-  This file is part of cangaroo.
+  This file is part of CANgaroo.
+
+  cangaroo is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+
+  cangaroo is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with cangaroo.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -41,6 +54,15 @@ SignalSelectorDialog::SignalSelectorDialog(QWidget *parent, Backend &backend)
     _tree->setColumnWidth(0, 250);
     layout->addWidget(_tree);
 
+    connect(_tree, &QTreeWidget::itemChanged, this, &SignalSelectorDialog::onItemChanged);
+
+    connect(this, &SignalSelectorDialog::finished, [this]() {
+        disconnect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, &SignalSelectorDialog::applyTheme);
+    });
+
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, &SignalSelectorDialog::applyTheme);
+    applyTheme(ThemeManager::instance().currentTheme());
+
     populateTree();
 
     // Buttons
@@ -69,6 +91,7 @@ void SignalSelectorDialog::populateTree()
             for (CanDbMessage *msg : db->getMessageList().values()) {
                 QTreeWidgetItem *msgItem = new QTreeWidgetItem(netItem);
                 msgItem->setText(0, QString("%1 (0x%2)").arg(msg->getName()).arg(msg->getRaw_id(), 0, 16));
+                msgItem->setCheckState(0, Qt::Unchecked); // Select All checkbox
                 
                 for (CanDbSignal *sig : msg->getSignals()) {
                     QTreeWidgetItem *sigItem = new QTreeWidgetItem(msgItem);
@@ -84,6 +107,13 @@ void SignalSelectorDialog::populateTree()
                     sigItem->setText(2, sig->comment());
                     sigItem->setCheckState(0, Qt::Unchecked);
                     sigItem->setData(0, Qt::UserRole, QVariant::fromValue((void*)sig));
+
+                    // Add colored legend icon (deterministic color based on name)
+                    QPixmap pix(12, 12);
+                    uint h = qHash(sig->name());
+                    QColor c = QColor::fromHsl(h % 360, 180, 150);
+                    pix.fill(c);
+                    sigItem->setIcon(0, QIcon(pix));
                 }
             }
         }
@@ -156,6 +186,40 @@ void SignalSelectorDialog::filterTree(const QString &searchText, bool showSelect
     }
 }
 
+void SignalSelectorDialog::onItemChanged(QTreeWidgetItem *item, int column)
+{
+    if (column != 0) return;
+
+    _tree->blockSignals(true);
+    Qt::CheckState state = item->checkState(0);
+
+    // If it's a message/network/node (container), toggle all children
+    for (int i = 0; i < item->childCount(); ++i) {
+        item->child(i)->setCheckState(0, state);
+        // Recursively handle sub-children if any
+        for (int j = 0; j < item->child(i)->childCount(); ++j) {
+            item->child(i)->child(j)->setCheckState(0, state);
+        }
+    }
+
+    // If it's a child, update parent's state (PartiallyChecked logic)
+    QTreeWidgetItem *parent = item->parent();
+    if (parent) {
+        int checkedCount = 0;
+        for (int i = 0; i < parent->childCount(); ++i) {
+            if (parent->child(i)->checkState(0) != Qt::Unchecked) {
+                checkedCount++;
+            }
+        }
+        
+        if (checkedCount == 0) parent->setCheckState(0, Qt::Unchecked);
+        else if (checkedCount == parent->childCount()) parent->setCheckState(0, Qt::Checked);
+        else parent->setCheckState(0, Qt::PartiallyChecked);
+    }
+
+    _tree->blockSignals(false);
+}
+
 bool SignalSelectorDialog::shouldShowItem(QTreeWidgetItem *item, const QString &searchText, bool showSelectedOnly)
 {
     // If it's a signal (has data)
@@ -179,4 +243,50 @@ bool SignalSelectorDialog::shouldShowItem(QTreeWidgetItem *item, const QString &
     }
 
     return false;
+}
+
+void SignalSelectorDialog::applyTheme(ThemeManager::Theme theme)
+{
+    bool isDark = (theme == ThemeManager::Dark);
+    
+    // Revert dialog-level background styling to keep original view
+    this->setStyleSheet("");
+
+    if (isDark) {
+        // Targeted styling for tree indicators (CAN messages and signals)
+        QString treeStyle = 
+            "QTreeWidget::indicator, QTreeView::indicator {"
+            "  width: 16px;"
+            "  height: 16px;"
+            "  border: 2px solid #FFFFFF;" // Pure white border for maximum visibility
+            "  border-radius: 3px;"
+            "  background-color: transparent;"
+            "}"
+            "QTreeWidget::indicator:checked, QTreeView::indicator:checked {"
+            "  background-color: #00FF00;"
+            "}"
+            "QTreeWidget::indicator:indeterminate, QTreeView::indicator:indeterminate {"
+            "  background-color: #555;"
+            "}";
+
+        // Targeted styling for the standalone "Show selection only" checkbox
+        QString checkStyle = 
+            "QCheckBox::indicator {"
+            "  width: 16px;"
+            "  height: 16px;"
+            "  border: 2px solid #FFFFFF;"
+            "  border-radius: 3px;"
+            "  background-color: transparent;"
+            "}"
+            "QCheckBox::indicator:checked {"
+            "  background-color: #00FF00;"
+            "}";
+
+        _tree->setStyleSheet(treeStyle);
+        _showSelectedOnly->setStyleSheet(checkStyle);
+    } else {
+        // Restore standard Light Mode styling
+        _tree->setStyleSheet("");
+        _showSelectedOnly->setStyleSheet("");
+    }
 }

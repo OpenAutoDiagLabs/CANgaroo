@@ -4,14 +4,23 @@
 #include "UnifiedTraceItem.h"
 #include <decoders/ProtocolManager.h>
 #include <memory>
+#include <map>
 
 class UnifiedTraceViewModel : public BaseTraceViewModel
 {
     Q_OBJECT
 
 public:
-    UnifiedTraceViewModel(Backend &backend);
+    enum Category {
+        Cat_All,
+        Cat_UDS,
+        Cat_J1939
+    };
+
+    UnifiedTraceViewModel(Backend &backend, Category category = Cat_All);
     ~UnifiedTraceViewModel();
+
+    void setCategory(Category category) { m_category = category; }
 
     virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
     virtual QModelIndex parent(const QModelIndex &child) const override;
@@ -28,11 +37,19 @@ private slots:
 
 private:
     std::shared_ptr<UnifiedTraceItem> m_rootItem;
+    std::shared_ptr<UnifiedTraceItem> m_aggHeader;
+    std::shared_ptr<UnifiedTraceItem> m_udsHeader;
+    std::shared_ptr<UnifiedTraceItem> m_j1939Header;
+    
+    Category m_category;
     ProtocolManager m_protocolManager;
     int m_lastProcessedIndex = -1;
     uint32_t m_globalIndexCounter = 1;
     uint64_t m_firstTimestamp = 0;
     uint64_t m_previousRowTimestamp = 0;
+
+    std::map<uint32_t, std::shared_ptr<UnifiedTraceItem>> m_j1939AggregatedMap;
+    uint32_t getJ1939Key(const ProtocolMessage& pmsg) const;
 
     QVariant data_DisplayRole(const QModelIndex &index) const;
     QVariant data_TextColorRole(const QModelIndex &index) const;

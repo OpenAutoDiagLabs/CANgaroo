@@ -22,19 +22,27 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "version.h"
-
-#include <QtWidgets>
-#include <QMdiArea>
-#include <QSignalMapper>
-#include <QCloseEvent>
-#include <QTimer>
-#include <QDomDocument>
-#include <QPalette>
+#include <QItemSelectionModel>
+#include <QMenu>
+#include <QFileDialog>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QMdiArea>
+#include <QMdiSubWindow>
+#include <QSignalMapper>
+#include <QDomDocument>
+#include <QMessageBox>
+#include <QCloseEvent>
+#include <QSettings>
+#include <QPushButton>
+#include <QTimer>
+#include <QLabel>
+#include <QDockWidget>
+#include <QStatusBar>
 
-#include <core/MeasurementSetup.h>
-#include <core/CanTrace.h>
+#include "core/Backend.h"
+#include "core/CanTrace.h"
+#include "core/ThemeManager.h"
 #include <window/TraceWindow/TraceWindow.h>
 #include <window/SetupDialog/SetupDialog.h>
 #include <window/LogWindow/LogWindow.h>
@@ -135,45 +143,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Default to Light
     setTheme("light");
-
-    setStyleSheet(
-        "QMainWindow::separator {"
-        "  background: transparent;"
-        "  width: 6px;"
-        "  height: 6px;"
-        "}"
-        "QMainWindow::separator:hover {"
-        "  background: #0078d7;"
-        "}"
-        "QSplitter::handle {"
-        "  background: transparent;"
-        "  width: 6px;"
-        "  height: 6px;"
-        "}"
-        "QSplitter::handle:hover {"
-        "  background: #0078d7;"
-        "}"
-        "QPushButton#btnStartMeasurement {"
-        "  background-color: #28a745;"
-        "  color: white;"
-        "  border-radius: 12px;"
-        "  padding: 5px 15px;"
-        "  font-weight: bold;"
-        "}"
-        "QPushButton#btnStartMeasurement:disabled {"
-        "  background-color: #94d3a2;"
-        "}"
-        "QPushButton#btnStopMeasurement {"
-        "  background-color: #dc3545;"
-        "  color: white;"
-        "  border-radius: 12px;"
-        "  padding: 5px 15px;"
-        "  font-weight: bold;"
-        "}"
-        "QPushButton#btnStopMeasurement:disabled {"
-        "  background-color: #f1aeb5;"
-        "}"
-    );
 }
 
 MainWindow::~MainWindow()
@@ -720,7 +689,6 @@ void MainWindow::showAboutDialog()
        "\n"
        "version " CANGAROO_VERSION_STR "\n"
        "\n"
-       "(c)2015-2017 Hubert Denkmair\n"
        "(c)2026 Jayachandran Dharuman"
     );
 }
@@ -830,55 +798,22 @@ void MainWindow::onThemeToggleClicked()
 void MainWindow::setTheme(const QString &theme)
 {
     _currentTheme = theme;
+    bool isDark = (theme == "dark");
+    ThemeManager::instance().applyTheme(isDark ? ThemeManager::Dark : ThemeManager::Light);
 
-    if (theme == "light") {
-        qApp->setPalette(style()->standardPalette());
-        qApp->setStyleSheet("");
-        if (_btnThemeToggle) {
-            _btnThemeToggle->setText("🌙");
-            _btnThemeToggle->setStyleSheet(
-                "QPushButton {"
-                "  font-size: 18px;"
-                "  border-radius: 16px;"
-                "  background: transparent;"
-                "}"
-                "QPushButton:hover {"
-                "  background: rgba(0, 0, 0, 0.1);"
-                "}"
-            );
-        }
-    } else if (theme == "dark") {
-        QPalette darkPalette;
-        darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
-        darkPalette.setColor(QPalette::WindowText, Qt::white);
-        darkPalette.setColor(QPalette::Base, QColor(25, 25, 25));
-        darkPalette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
-        darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
-        darkPalette.setColor(QPalette::ToolTipText, Qt::white);
-        darkPalette.setColor(QPalette::Text, Qt::white);
-        darkPalette.setColor(QPalette::Button, QColor(53, 53, 53));
-        darkPalette.setColor(QPalette::ButtonText, Qt::white);
-        darkPalette.setColor(QPalette::BrightText, Qt::red);
-        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
-        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
-        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
-        qApp->setPalette(darkPalette);
-        qApp->setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
-        
-        if (_btnThemeToggle) {
-            _btnThemeToggle->setText("☀️");
-            _btnThemeToggle->setStyleSheet(
-                "QPushButton {"
-                "  font-size: 18px;"
-                "  border-radius: 16px;"
-                "  background: transparent;"
-                "  color: white;"
-                "}"
-                "QPushButton:hover {"
-                "  background: rgba(255, 255, 255, 0.1);"
-                "}"
-            );
-        }
+    if (_btnThemeToggle) {
+        _btnThemeToggle->setText(isDark ? "☀️" : "🌙");
+        _btnThemeToggle->setStyleSheet(
+            "QPushButton {"
+            "  font-size: 18px;"
+            "  border-radius: 16px;"
+            "  background: transparent;"
+            "  color: " + QString(isDark ? "white" : "black") + ";"
+            "}"
+            "QPushButton:hover {"
+            "  background: rgba(" + QString(isDark ? "255, 255, 255" : "0, 0, 0") + ", 0.1);"
+            "}"
+        );
     }
 }
 

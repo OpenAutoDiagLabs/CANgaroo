@@ -60,13 +60,13 @@ void CanTrace::clear()
     emit afterClear();
 }
 
-const CanMessage *CanTrace::getMessage(int idx)
+CanMessage CanTrace::getMessage(int idx)
 {
     QMutexLocker locker(&_mutex);
     if (idx >= (_dataRowsUsed + _newRows)) {
-        return 0;
+        return CanMessage();
     } else {
-        return &_data[idx];
+        return _data[idx];
     }
 }
 

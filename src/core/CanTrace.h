@@ -45,7 +45,7 @@ public:
 
     unsigned long size();
     void clear();
-    const CanMessage *getMessage(int idx);
+    CanMessage getMessage(int idx);
     void enqueueMessage(const CanMessage &msg, bool more_to_follow=false);
 
     void saveCanDump(QFile &file);

@@ -223,7 +223,7 @@ void GrIP_Update(void)
 
     case GrIP_State_RX_Header:
         // Check if header data is available
-        if(serPort->bytesAvailable() > (GRIP_HEADER_SIZE*2u-1u))
+        if(serPort->bytesAvailable() > static_cast<qint64>(GRIP_HEADER_SIZE*2u-1u))
         {
             uint8_t head_buff[GRIP_HEADER_SIZE*2u] = {};
             uint8_t *pHeader = (uint8_t*)&RX_Buff.RX_Header;
@@ -264,7 +264,8 @@ void GrIP_Update(void)
             // If response received
             if(RX_Buff.RX_Header.MsgType == MSG_RESPONSE || RX_Buff.RX_Header.MsgType == MSG_SYNC)
             {
-                GrIP_Status = GrIP_State_Idle;
+                GrIP_Status = GrIP_State_Finish;
+                SendReponse = false;
                 // check response
                 //printf("Received resp cnt: %d\n", GrIP_ResponseCnt);
                 if(RX_Buff.RX_Header.ReturnCode != RET_OK)
@@ -328,7 +329,6 @@ void GrIP_Update(void)
             {
                 // Received valid hex character
                 RX_Buff.Data[BytesRead] = hex2dec((char*)tmp, 2u);
-                BytesRead++;
             }
             else
             {
@@ -349,6 +349,8 @@ void GrIP_Update(void)
 
                 break;
             }
+
+            BytesRead++;
 
             if(BytesRead >= RX_Buff.RX_Header.Length)
             {
@@ -375,10 +377,14 @@ void GrIP_Update(void)
                     ErrorFlags.CRC_Error++;
                     qDebug() << "Wrong CRC";
                 }
+
+                // Leave loop after all bytes received
                 break;
             }
         }
+        // Reset counter for next round
         MaxReadCount = MAX_READ_CNT;
+
         break;
 
     case GrIP_State_Finish:

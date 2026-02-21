@@ -47,7 +47,9 @@ void MeasurementNetwork::addInterface(MeasurementInterface *intf)
 
 void MeasurementNetwork::removeInterface(MeasurementInterface *intf)
 {
-    _interfaces.removeAll(intf);
+    if (_interfaces.removeAll(intf) > 0) {
+        delete intf;
+    }
 }
 
 QList<MeasurementInterface *> MeasurementNetwork::interfaces()

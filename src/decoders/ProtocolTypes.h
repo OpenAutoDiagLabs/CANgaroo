@@ -5,6 +5,8 @@
 #include <QVector>
 #include <core/CanMessage.h>
 
+#include <QVariantMap>
+
 enum class MessageType {
     Request,
     PositiveResponse,
@@ -22,4 +24,5 @@ struct ProtocolMessage {
     MessageType type = MessageType::Unknown;
     uint32_t id;           // SID or PGN
     uint32_t globalIndex = 0;
+    QVariantMap metadata;  // Protocol specific fields (Priority, SA, DA, etc.)
 };

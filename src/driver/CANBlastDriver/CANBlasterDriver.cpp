@@ -61,8 +61,7 @@ bool CANBlasterDriver::update() {
     udpSocket.joinMulticastGroup(groupAddress);
 
     // Record start time
-    struct timeval start_time;
-    gettimeofday(&start_time,NULL);
+    qint64 start_time_ms = QDateTime::currentMSecsSinceEpoch();
 
     fprintf(stderr, "CANblaster: start listen\r\n");
 
@@ -95,11 +94,10 @@ bool CANBlasterDriver::update() {
             }
         }
 
-        struct timeval tv;
-        gettimeofday(&tv,NULL);
+        qint64 current_time_ms = QDateTime::currentMSecsSinceEpoch();
 
-        // Iterate until timer expires
-        if(tv.tv_sec - start_time.tv_sec > 2)
+        // Iterate until timer expires (2 seconds)
+        if ((current_time_ms - start_time_ms) > 2000)
             break;
     }
     fprintf(stderr, "CANblaster: stop listen\r\n");
