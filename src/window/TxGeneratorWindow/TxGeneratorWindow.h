@@ -2,7 +2,7 @@
 
   Copyright (c) 2026 Jayachandran Dharuman
 
-  This file is part of cangaroo.
+  This file is part of CANgaroo.
 
   cangaroo is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -81,12 +81,14 @@ private slots:
     void onStatusButtonClicked();
     void updateMeasurementState();
     void refreshInterfaces();
+    void onRandomPayloadReleased();
 
 private:
     Ui::TxGeneratorWindow *ui;
     Backend &_backend;
     QTimer *_sendTimer;
     BitMatrixWidget *_bitMatrixWidget;
+    class QPushButton *_btnRandomPayload;
 
     struct CyclicMessage {
         CanMessage msg;

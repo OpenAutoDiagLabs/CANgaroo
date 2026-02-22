@@ -123,7 +123,9 @@ bool SetupDialog::showSetupDialog(MeasurementSetup &setup)
     ui->treeView->setCurrentIndex(first);
 
     updateButtons();
-    return exec()==QDialog::Accepted;
+    bool result = exec()==QDialog::Accepted;
+    model->unload();
+    return result;
 }
 
 void SetupDialog::treeViewSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
@@ -414,7 +416,9 @@ void SetupDialog::on_btRemoveNetwork_clicked()
 void SetupDialog::on_btRefreshNetworks_clicked()
 {
     _backend->setDefaultSetup();
-    showSetupDialog(_backend->getSetup());
+    model->load(_backend->getSetup());
+    ui->treeView->expandAll();
+    updateButtons();
     _isReflashNetworks = true;
 }
 

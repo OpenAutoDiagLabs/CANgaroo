@@ -52,7 +52,7 @@ CANBlasterInterface::CANBlasterInterface(CANBlasterDriver *driver, int index, QS
     _config.supports_canfd = fd_support;
 
     // Record start time
-    gettimeofday(&_heartbeat_time,NULL);
+    _heartbeat_time_ms = QDateTime::currentMSecsSinceEpoch();
 }
 
 CANBlasterInterface::~CANBlasterInterface() {
@@ -61,11 +61,11 @@ CANBlasterInterface::~CANBlasterInterface() {
 QString CANBlasterInterface::getDetailsStr() const {
     if(_config.supports_canfd)
     {
-        return "CANBlaster client with CANFD support";
+        return tr("CANBlaster client with CANFD support");
     }
     else
     {
-        return "CANBlaster client with standard CAN support";
+        return tr("CANBlaster client with standard CAN support");
     }
 }
 
@@ -244,13 +244,12 @@ bool CANBlasterInterface::readMessage(QList<CanMessage> &msglist, unsigned int t
     Q_UNUSED(timeout_ms);
 
     // Record start time
-    struct timeval now;
-    gettimeofday(&now,NULL);
+    qint64 current_time_ms = QDateTime::currentMSecsSinceEpoch();
 
-    if(now.tv_sec - _heartbeat_time.tv_sec > 1)
+    if(current_time_ms - _heartbeat_time_ms > 1000)
     {
 
-        _heartbeat_time.tv_sec = now.tv_sec;
+        _heartbeat_time_ms = current_time_ms;
 
         if(_isOpen)
         {
@@ -286,10 +285,13 @@ bool CANBlasterInterface::readMessage(QList<CanMessage> &msglist, unsigned int t
         if(res > 0)
         {
             // Set timestamp to current time
-            struct timeval tv;
-            gettimeofday(&tv,NULL);
             CanMessage msg;
-            msg.setTimestamp(tv);
+
+            qint64 msec = QDateTime::currentMSecsSinceEpoch();
+            msg.setTimestamp({
+                static_cast<long>(msec / 1000),        // Sekunden
+                static_cast<long>((msec % 1000) * 1000) // Mikrosekunden
+            });
 
             msg.setInterfaceId(getId());
             msg.setId(frame.can_id & CAN_ERR_MASK);

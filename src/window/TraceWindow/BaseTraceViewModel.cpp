@@ -29,7 +29,8 @@
 #include <core/CanTrace.h>
 #include <core/CanMessage.h>
 #include <core/CanDbMessage.h>
-#include<iostream>
+#include <core/ThemeManager.h>
+#include <iostream>
 
 BaseTraceViewModel::BaseTraceViewModel(Backend &backend)
 {
@@ -317,7 +318,8 @@ QVariant BaseTraceViewModel::data_TextColorRole_Signal(const QModelIndex &index,
     if (dbsignal->isPresentInMessage(msg)) {
         return QVariant(); // default text color
     } else {
-        return QVariant::fromValue(QColor(200,200,200));
+        bool isDark = ThemeManager::instance().isDarkMode();
+        return QVariant::fromValue(isDark ? QColor(100, 100, 100) : QColor(200, 200, 200));
     }
 }
 

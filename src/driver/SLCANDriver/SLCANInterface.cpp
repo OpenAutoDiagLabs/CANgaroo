@@ -93,27 +93,27 @@ QString SLCANInterface::getDetailsStr() const
     {
         if(_config.supports_canfd)
         {
-            return "CANable with CANFD support";
+            return tr("CANable with CANFD support");
         }
         else
         {
-            return "CANable with standard CAN support";
+            return tr("CANable with standard CAN support");
         }
     }
     else if(_manufacturer == WeActStudio)
     {
         if(_config.supports_canfd)
         {
-            return "WeAct Studio USB2CAN with CANFD support";
+            return tr("WeAct Studio USB2CAN with CANFD support");
         }
         else
         {
-            return "WeAct Studio USB2CAN with standard CAN support";
+            return tr("WeAct Studio USB2CAN with standard CAN support");
         }
     }
     else
     {
-        return "Not Support";
+        return tr("Not Supported");
     }
 }
 
@@ -957,9 +957,11 @@ bool SLCANInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeou
 bool SLCANInterface::parseMessage(CanMessage &msg)
 {
     // Set timestamp to current time
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    msg.setTimestamp(tv);
+    qint64 msec = QDateTime::currentMSecsSinceEpoch();
+    msg.setTimestamp({
+        static_cast<long>(msec / 1000),        // Sekunden
+        static_cast<long>((msec % 1000) * 1000) // Mikrosekunden
+    });
 
     // Defaults
     msg.setErrorFrame(0);

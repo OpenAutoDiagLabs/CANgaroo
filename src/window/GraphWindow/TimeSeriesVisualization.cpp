@@ -1,8 +1,21 @@
 /*
 
-  Copyright (c) 2026 Antigravity AI
+  Copyright (c) 2026 Jayachandran Dharuman
 
-  This file is part of cangaroo.
+  This file is part of CANgaroo.
+
+  cangaroo is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+
+  cangaroo is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with cangaroo.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -21,6 +34,10 @@
 #include <QBrush>
 #include <QDateTime>
 #include <QTimer>
+#include <QtCharts/QValueAxis>
+#include <QtCharts/QLineSeries>
+#include <QtCharts/QChartView>
+#include <core/ThemeManager.h>
 
 TimeSeriesVisualization::TimeSeriesVisualization(QWidget *parent, Backend &backend)
     : VisualizationWidget(parent, backend), _windowDuration(0), _autoScroll(true), _isUpdatingRange(false)
@@ -82,6 +99,7 @@ TimeSeriesVisualization::TimeSeriesVisualization(QWidget *parent, Backend &backe
     _tooltipBox->setGraphicsEffect(shadow);
 
     setMouseTracking(true);
+    applyTheme(ThemeManager::instance().currentTheme());
 }
 
 TimeSeriesVisualization::~TimeSeriesVisualization()
@@ -341,4 +359,35 @@ void TimeSeriesVisualization::onAxisRangeChanged(qreal min, qreal max)
     if (!_isUpdatingRange) {
         _autoScroll = false;
     }
+}
+
+void TimeSeriesVisualization::applyTheme(ThemeManager::Theme theme)
+{
+    const ThemeColors& colors = ThemeManager::instance().colors();
+    
+    _chart->setBackgroundBrush(colors.graphBackground);
+    _chart->setTitleBrush(colors.windowText);
+    _chart->legend()->setLabelColor(colors.windowText);
+
+    for (auto axis : _chart->axes()) {
+        axis->setLabelsColor(colors.graphAxisText);
+        axis->setTitleBrush(colors.graphAxisText);
+        if (auto vAxis = qobject_cast<QValueAxis*>(axis)) {
+            vAxis->setGridLineColor(colors.graphGrid);
+        }
+    }
+
+    _cursorLine->setPen(QPen(colors.graphCursor, 1, Qt::DashLine));
+    _tooltipBox->setBrush(QBrush(colors.toolTipBase));
+    _tooltipBox->setPen(QPen(colors.toolTipText, 1));
+    _tooltipText->setDefaultTextColor(colors.toolTipText);
+
+    if (theme == ThemeManager::Dark) {
+        _chart->setTheme(QChart::ChartThemeDark);
+    } else {
+        _chart->setTheme(QChart::ChartThemeLight);
+    }
+    
+    // Explicitly override background again as ChartTheme might change it
+    _chart->setBackgroundBrush(colors.graphBackground);
 }

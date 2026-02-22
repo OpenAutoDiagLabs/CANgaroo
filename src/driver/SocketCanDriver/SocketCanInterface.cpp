@@ -34,7 +34,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 
 #include <linux/if.h>
 #include <linux/can.h>
@@ -44,6 +43,7 @@
 #include <netlink/version.h>
 #include <netlink/route/link.h>
 #include <netlink/route/link/can.h>
+
 
 SocketCanInterface::SocketCanInterface(SocketCanDriver *driver, int index, QString name)
   : CanInterface((CanDriver *)driver),
@@ -339,7 +339,7 @@ uint32_t SocketCanInterface::getCapabilities()
     if (supportsTripleSampling()) {
         retval |= CanInterface::capability_triple_sampling;
     }
-    
+
     return retval;
 }
 
@@ -413,6 +413,7 @@ void SocketCanInterface::open() {
 
     struct ifreq ifr;
     struct sockaddr_can addr;
+
     strncpy(ifr.ifr_name, _name.toStdString().c_str(), IFNAMSIZ - 1);
     ifr.ifr_name[IFNAMSIZ - 1] = '\0';
     if (ioctl(_fd, SIOCGIFINDEX, &ifr) < 0) {

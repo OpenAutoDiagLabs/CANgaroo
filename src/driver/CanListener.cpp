@@ -70,7 +70,7 @@ void CanListener::run()
     _openComplete = true;
     while (_shouldBeRunning) {
         if (_intf.readMessage(rxMessages, 500)) {
-            for(const CanMessage &msg: qAsConst(rxMessages))
+            for(const CanMessage &msg: std::as_const(rxMessages))
             {
                 trace->enqueueMessage(msg, false);
             }

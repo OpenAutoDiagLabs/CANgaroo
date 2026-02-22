@@ -2,9 +2,10 @@
 #include <core/CanTrace.h>
 #include <core/Backend.h>
 #include <QColor>
+#include <core/ThemeManager.h>
 
-UnifiedTraceViewModel::UnifiedTraceViewModel(Backend &backend)
-    : BaseTraceViewModel(backend)
+UnifiedTraceViewModel::UnifiedTraceViewModel(Backend &backend, Category category)
+    : BaseTraceViewModel(backend), m_category(category)
 {
     m_rootItem = std::make_shared<UnifiedTraceItem>(CanMessage()); // Dummy root
     m_firstTimestamp = 0;
@@ -106,43 +107,74 @@ void UnifiedTraceViewModel::afterAppend()
     CanTrace *trace = backend()->getTrace();
     int size = trace->size();
     
+    if (m_lastProcessedIndex >= size) {
+        m_lastProcessedIndex = size - 1;
+    }
+
+    QList<std::shared_ptr<UnifiedTraceItem>> newItems;
+
     for (int i = m_lastProcessedIndex + 1; i < size; ++i) {
-        const CanMessage *msg = trace->getMessage(i);
-        if (!msg) continue;
+        CanMessage msg = trace->getMessage(i);
 
         ProtocolMessage pmsg;
-        DecodeStatus status = m_protocolManager.processFrame(*msg, pmsg);
+        DecodeStatus status = m_protocolManager.processFrame(msg, pmsg);
         
+        bool shouldAppend = false;
         if (status == DecodeStatus::Completed) {
-            // New protocol message completed. Add it as a parent row.
-            beginInsertRows(QModelIndex(), m_rootItem->childCount(), m_rootItem->childCount());
-            auto item = std::make_shared<UnifiedTraceItem>(pmsg, m_rootItem.get());
-            
-            if (m_firstTimestamp == 0) m_firstTimestamp = pmsg.timestamp;
-            item->setTimestamp(pmsg.timestamp);
-            item->setGlobalIndex(pmsg.globalIndex);
-            
-            m_rootItem->appendChild(item);
-            endInsertRows();
-            m_globalIndexCounter = pmsg.globalIndex + 1; // Keep counters synced
-        } else if (status == DecodeStatus::Ignored) {
-            // Not part of any protocol. Add as a standalone raw frame.
-            beginInsertRows(QModelIndex(), m_rootItem->childCount(), m_rootItem->childCount());
-            auto item = std::make_shared<UnifiedTraceItem>(*msg, m_rootItem.get());
-            
-            uint64_t ts = static_cast<uint64_t>(msg->getFloatTimestamp() * 1000000.0);
-            if (m_firstTimestamp == 0) m_firstTimestamp = ts;
-            item->setTimestamp(ts);
-            item->setGlobalIndex(m_globalIndexCounter++);
+            if (m_category == Cat_All) {
+                shouldAppend = true;
+            } else if (pmsg.protocol.compare("uds", Qt::CaseInsensitive) == 0 && m_category == Cat_UDS) {
+                shouldAppend = true;
+            } else if (pmsg.protocol.compare("j1939", Qt::CaseInsensitive) == 0 && m_category == Cat_J1939) {
+                uint32_t key = getJ1939Key(pmsg);
+                if (m_j1939AggregatedMap.count(key)) {
+                    auto &item = m_j1939AggregatedMap[key];
+                    item->updateProtocolMessage(pmsg);
+                    int r = item->row();
+                    QModelIndex idx = createIndex(r, 0, item.get());
+                    emit dataChanged(idx, idx.sibling(r, column_count - 1));
+                    
+                    // Also notify children updates if expanded
+                    if (item->childCount() > 0) {
+                        QModelIndex firstChild = index(0, 0, idx);
+                        QModelIndex lastChild = index(item->childCount() - 1, column_count - 1, idx);
+                        emit dataChanged(firstChild, lastChild);
+                    }
+                } else {
+                    shouldAppend = true;
+                }
+            }
 
-            m_rootItem->appendChild(item);
-            endInsertRows();
-        }
- else if (status == DecodeStatus::Consumed) {
-            // Part of an ongoing protocol sequence. 
-            // We don't add it as a root level item, it will appear as a child once Completed.
+            if (shouldAppend) {
+                auto item = std::make_shared<UnifiedTraceItem>(pmsg, m_rootItem.get());
+                if (m_firstTimestamp == 0) m_firstTimestamp = pmsg.timestamp;
+                item->setTimestamp(pmsg.timestamp);
+                item->setGlobalIndex(m_globalIndexCounter++); 
+                newItems.append(item);
+                
+                if (m_category == Cat_J1939) {
+                    m_j1939AggregatedMap[getJ1939Key(pmsg)] = item;
+                }
+            }
+        } else if (status == DecodeStatus::Ignored) {
+            if (m_category == Cat_All) {
+                auto item = std::make_shared<UnifiedTraceItem>(msg, m_rootItem.get());
+                uint64_t ts = static_cast<uint64_t>(msg.getFloatTimestamp() * 1000000.0);
+                if (m_firstTimestamp == 0) m_firstTimestamp = ts;
+                item->setTimestamp(ts);
+                item->setGlobalIndex(m_globalIndexCounter++);
+                newItems.append(item);
+            }
         }
         m_lastProcessedIndex = i;
+    }
+
+    if (!newItems.isEmpty()) {
+        beginInsertRows(QModelIndex(), m_rootItem->childCount(), m_rootItem->childCount() + newItems.size() - 1);
+        for (auto &item : newItems) {
+            m_rootItem->appendChild(item);
+        }
+        endInsertRows();
     }
 }
 
@@ -159,7 +191,15 @@ void UnifiedTraceViewModel::afterClear()
     m_globalIndexCounter = 1;
     m_firstTimestamp = 0;
     m_previousRowTimestamp = 0;
+    m_j1939AggregatedMap.clear();
     endResetModel();
+}
+
+uint32_t UnifiedTraceViewModel::getJ1939Key(const ProtocolMessage& pmsg) const
+{
+    uint32_t pgn = pmsg.id;
+    uint32_t sa = pmsg.metadata.value("SA").toUInt();
+    return (pgn << 8) | (sa & 0xFF);
 }
 
 QVariant UnifiedTraceViewModel::data_DisplayRole(const QModelIndex &index) const
@@ -186,9 +226,19 @@ QVariant UnifiedTraceViewModel::data_DisplayRole(const QModelIndex &index) const
                 return formatUnifiedTimestamp(current, prev);
             }
             case column_canid: 
-                if (pmsg.protocol == "uds") return QString("0x%1").arg(pmsg.id, 2, 16, QChar('0'));
-                if (pmsg.protocol == "j1939") return QString("pgn:0x%1").arg(pmsg.id, 0, 16);
-                return pmsg.protocol;
+            {
+                uint32_t rawId = pmsg.rawFrames.isEmpty() ? 0 : pmsg.rawFrames.first().getId();
+                QString rawStr = QString("0x%1").arg(rawId, 0, 16);
+                if (pmsg.protocol.compare("uds", Qt::CaseInsensitive) == 0) return QString("%1 (SID:%2)").arg(rawStr).arg(pmsg.id, 2, 16, QChar('0'));
+                if (pmsg.protocol.compare("j1939", Qt::CaseInsensitive) == 0) return QString("%1 (PGN:%2)").arg(rawStr).arg(pmsg.id, 0, 16);
+                return rawStr;
+            }
+            case column_type: 
+                if (pmsg.protocol.compare("j1939", Qt::CaseInsensitive) == 0) {
+                    uint8_t pf = (pmsg.id >> 8) & 0xFF; // pmsg.id is PGN
+                    return (pf < 240) ? "PDU1" : "PDU2";
+                }
+                return pmsg.protocol.toUpper();
             case column_name: return pmsg.name;
             case column_comment: return pmsg.description;
             case column_data: return pmsg.payload.toHex(' ');
@@ -196,9 +246,34 @@ QVariant UnifiedTraceViewModel::data_DisplayRole(const QModelIndex &index) const
             case column_direction: return pmsg.rawFrames.isEmpty() ? "" : (pmsg.rawFrames.first().isRX() ? "RX" : "TX");
             case column_channel: return pmsg.rawFrames.isEmpty() ? "" : backend()->getInterfaceName(pmsg.rawFrames.first().getInterfaceId());
             case column_sender:
-                if (pmsg.protocol == "uds") {
+                if (pmsg.protocol.compare("uds", Qt::CaseInsensitive) == 0) {
                     return (pmsg.type == MessageType::Request) ? "Tester" : "ECU";
                 }
+                return "";
+            default: return QVariant();
+        }
+    } else if (item->isMetadata()) {
+        switch (index.column()) {
+            case column_timestamp: 
+            {
+                uint64_t prev = 0;
+                if (index.row() > 0) {
+                    auto prevItem = item->parentItem()->child(index.row() - 1);
+                    if (prevItem) prev = prevItem->timestamp();
+                } else {
+                    prev = (item->parentItem() != m_rootItem.get()) ? item->parentItem()->timestamp() : 0;
+                }
+                return formatUnifiedTimestamp(current, prev);
+            }
+            case column_name: return item->metadataName();
+            case column_data: return item->metadataValue();
+            case column_type: 
+                if (item->metadataName() == "Priority") return "P";
+                if (item->metadataName() == "Reserved") return "R";
+                if (item->metadataName() == "Data Page") return "DP";
+                if (item->metadataName() == "PDU Format") return "PF";
+                if (item->metadataName() == "PDU Specific") return "PS";
+                if (item->metadataName() == "Source Address") return "SA";
                 return "";
             default: return QVariant();
         }
@@ -230,12 +305,12 @@ QVariant UnifiedTraceViewModel::data_DisplayRole(const QModelIndex &index) const
                     // This is a child row - show transport layer info
                     uint8_t firstByte = msg.getByte(0);
                     uint8_t type = (firstByte >> 4) & 0x0F;
-                    if (type == 0x0) return "Single Frame";
-                    if (type == 0x1) return "First Frame";
-                    if (type == 0x2) return QString("Consecutive Frame (SN: %1)").arg(firstByte & 0x0F);
-                    if (type == 0x3) return "Flow Control";
+                    if (type == 0x0) return "[tp] Single Frame";
+                    if (type == 0x1) return "[tp] First Frame";
+                    if (type == 0x2) return QString("[tp] Consecutive Frame (SN: %1)").arg(firstByte & 0x0F);
+                    if (type == 0x3) return "[tp] Flow Control";
                 }
-                return (dbmsg) ? dbmsg->getName() : "";
+                return (dbmsg) ? dbmsg->getName() : "[raw]";
             case column_comment: return (dbmsg) ? dbmsg->getComment() : "";
             case column_sender: return ""; // Child rows don't show sender as per requirements
             default: return QVariant();
@@ -246,17 +321,22 @@ QVariant UnifiedTraceViewModel::data_DisplayRole(const QModelIndex &index) const
 QVariant UnifiedTraceViewModel::data_TextColorRole(const QModelIndex &index) const
 {
     UnifiedTraceItem *item = static_cast<UnifiedTraceItem*>(index.internalPointer());
+    bool isDark = ThemeManager::instance().isDarkMode();
+
     if (item->isProtocol()) {
         const ProtocolMessage& pmsg = item->protocolMessage();
         switch (pmsg.type) {
-            case MessageType::Request: return QColor(0, 0, 139); // Dark Blue #00008B
-            case MessageType::PositiveResponse: return QColor(0, 100, 0); // Dark Green #006400
-            case MessageType::NegativeResponse: return QColor(139, 0, 0); // Dark Red #8B0000
+            case MessageType::Request: 
+                return isDark ? QColor(100, 180, 255) : QColor(0, 0, 139); 
+            case MessageType::PositiveResponse: 
+                return isDark ? QColor(120, 255, 120) : QColor(0, 100, 0); 
+            case MessageType::NegativeResponse: 
+                return isDark ? QColor(255, 120, 120) : QColor(139, 0, 0); 
             default: break;
         }
     }
     const CanMessage& msg = item->rawFrame();
-    if (msg.isErrorFrame()) return QColor(Qt::red);
+    if (msg.isErrorFrame()) return isDark ? QColor(255, 100, 100) : QColor(Qt::red);
     return QVariant();
 }
 

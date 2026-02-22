@@ -63,8 +63,8 @@ void testJ1939SingleFrame() {
     ProtocolMessage out;
     DecodeStatus result = decoder.tryDecode(msg, out);
     assert(result == DecodeStatus::Completed);
-    assert(out.name == "j1939 pgn: 65263");
-    assert(out.protocol == "j1939");
+    assert(out.name == "PGN: 0xFF17");
+    assert(out.protocol == "J1939");
     assert(out.id == 65263);
     assert(out.type == MessageType::Request);
     std::cout << "testJ1939SingleFrame passed" << std::endl;

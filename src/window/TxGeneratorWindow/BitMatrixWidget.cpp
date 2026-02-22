@@ -50,7 +50,7 @@ void BitMatrixWidget::paintEvent(QPaintEvent *event)
     int startY = margin + labelSize;
 
     // Draw Column Labels (Bits 7..0) - Top Header
-    painter.setPen(Qt::black);
+    painter.setPen(palette().color(QPalette::WindowText));
     QFont headerFont = painter.font();
     headerFont.setBold(true);
     painter.setFont(headerFont);
@@ -72,10 +72,10 @@ void BitMatrixWidget::paintEvent(QPaintEvent *event)
     int cellHeight = cellSize;
     int cellWidth = int(cellHeight * 1.8); // Make width 1.8x the height
 
-    // =========================================================
-    // LAYER 1: BACKGROUND GRID (Faint Gray Lines)
-    // =========================================================
-    painter.setPen(QPen(QColor(230, 230, 230), 1)); // Very Light Gray
+    // LAYER 1: BACKGROUND GRID
+    QColor gridColor = palette().color(QPalette::WindowText);
+    gridColor.setAlpha(40);
+    painter.setPen(QPen(gridColor, 1));
     painter.setBrush(Qt::NoBrush);
     
     for (int row = 0; row < byteCount; ++row) {
@@ -123,13 +123,16 @@ void BitMatrixWidget::paintEvent(QPaintEvent *event)
                     QRect mergedRect(x, y, totalWidth, cellHeight);
 
                     // 1. Draw Colored Background
+                    QColor bg = getColorForSignal(signal);
+                    int brightness = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
+
                     painter.setPen(Qt::NoPen);
-                    painter.setBrush(getColorForSignal(signal));
+                    painter.setBrush(bg);
                     painter.drawRect(mergedRect);
 
                     // 2. Draw Internal Bit Separators
-                    // Draw a faint vertical line for every bit to show the grid structure
-                    painter.setPen(QPen(QColor(0, 0, 0, 40), 1)); // Faint Transparent Black
+                    QColor sepColor = brightness > 128 ? QColor(0, 0, 0, 40) : QColor(255, 255, 255, 40);
+                    painter.setPen(QPen(sepColor, 1));
                     painter.setBrush(Qt::NoBrush);
                     
                     for (int i = 1; i < columnsWide; ++i) {
@@ -138,7 +141,8 @@ void BitMatrixWidget::paintEvent(QPaintEvent *event)
                     }
 
                     // 3. Draw Border around the block
-                    painter.setPen(QPen(QColor(0, 0, 0, 80), 1)); // Darker Gray Border
+                    QColor borderColor = brightness > 128 ? QColor(0, 0, 0, 80) : QColor(255, 255, 255, 80);
+                    painter.setPen(QPen(borderColor, 1));
                     painter.drawRect(mergedRect);
 
                     // ---------------------------------------------------------
@@ -146,8 +150,6 @@ void BitMatrixWidget::paintEvent(QPaintEvent *event)
                     // ---------------------------------------------------------
                     
                     // A. Contrast Color Calculation
-                    QColor bg = getColorForSignal(signal);
-                    int brightness = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
                     painter.setPen(brightness > 128 ? Qt::black : Qt::white);
 
                     // B. Font Setup (Reduced Size)

@@ -91,16 +91,16 @@ QString GrIPInterface::getDetailsStr() const
     {
         if(_config.supports_canfd)
         {
-            return "CANIL with CANFD support";
+            return tr("CANIL with CANFD support");
         }
         else
         {
-            return "CANIL with standard CAN support";
+            return tr("CANIL with standard CAN support");
         }
     }
     else
     {
-        return "Not Supported";
+        return tr("Not Supported");
     }
 }
 
@@ -125,7 +125,7 @@ QList<CanTiming> GrIPInterface::getAvailableBitrates()
 
     if(_manufacturer == GrIPInterface::CANIL)
     {
-        bitrates.append({10000, 20000, 50000, 83333, 100000, 125000, 250000, 500000, 800000, 1000000});
+        bitrates.append({10000, 20000, 50000, 100000, 125000, 250000, 500000, 800000, 1000000});
         bitrates_fd.append({2000000, 5000000});
         samplePoints.append({875});
         samplePoints_fd.append({750});
@@ -134,10 +134,10 @@ QList<CanTiming> GrIPInterface::getAvailableBitrates()
     {
     }*/
 
-    unsigned i=0;
+    unsigned i = 0;
     foreach (unsigned br, bitrates)
     {
-        for (unsigned br_fd : bitrates_fd)
+        foreach(unsigned br_fd, bitrates_fd)
         {
             foreach (unsigned sp, samplePoints)
             {
@@ -203,16 +203,12 @@ uint32_t GrIPInterface::getCapabilities()
         retval =
             CanInterface::capability_auto_restart |
             CanInterface::capability_listen_only;
-    }
-    /*else if(_manufacturer == WeActStudio)
-    {
-        retval =
             // CanInterface::capability_config_os |
             // CanInterface::capability_auto_restart |
-            CanInterface::capability_listen_only |
-            CanInterface::capability_custom_bitrate |
-            CanInterface::capability_custom_canfd_bitrate;
-    }*/
+            //CanInterface::capability_listen_only |
+            //CanInterface::capability_custom_bitrate |
+            //CanInterface::capability_custom_canfd_bitrate;
+    }
 
     if (supportsCanFD())
     {
@@ -279,23 +275,6 @@ QString GrIPInterface::getVersion()
 
 void GrIPInterface::open()
 {
-    /*
-    if (_serport->open(QIODevice::ReadWrite))
-    {
-        //perror("Serport connected!");
-        qRegisterMetaType<QSerialPort::SerialPortError>("SerialThread");
-        //connect(_serport, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),  this, &SLCANInterface::handleSerialError);
-        //connect(_serport, SIGNAL(readyRead()),this,SLOT(serport_readyRead()));
-    }
-    else
-    {
-        perror("Serport connect failed!");
-        _serport_mutex.unlock();
-        _isOpen = false;
-        _isOffline = true;
-        return;
-    }*/
-
     if(m_GrIPHandler == nullptr)
     {
         _isOpen = false;
@@ -318,34 +297,13 @@ void GrIPInterface::open()
     }
 
     // Close CAN port
-    /*_serport->write("C\r", 2);
-    _serport->flush();
-    _serport->waitForBytesWritten(100);
-    _serport->waitForReadyRead(50);*/
+    m_GrIPHandler->EnableChannel(_idx, false);
+    QThread::msleep(2);
 
-    // Get Version
-    /*_serport->clear(QSerialPort::Input);
-    _serport->write("V\r", 2);
-    _serport->flush();
-    _serport->waitForBytesWritten(100);*/
-    /*if(_serport->waitForReadyRead(50))
-    {
-        qApp->processEvents();
-
-        if(_serport->bytesAvailable())
-        {
-            // This is called when readyRead() is emitted
-            QByteArray datas = _serport->readLine();
-            _version = QString(datas).trimmed();
-        }
-    }*/
-
-    /*if(_settings.isCustomBitrate())
+    if(_settings.isCustomBitrate())
     {
         QString _custombitrate = QString("%1").arg(_settings.customBitrate(), 6, 16,QLatin1Char('0')).toUpper();
-        std::string _custombitrate_std= 'S' + _custombitrate.toStdString() + '\r';
-        _serport->write(_custombitrate_std.c_str(), _custombitrate_std.length());
-        _serport->flush();
+        m_GrIPHandler->CAN_SetBaudrate(_idx, _custombitrate.toInt());
     }
     else
     {
@@ -353,73 +311,43 @@ void GrIPInterface::open()
         switch(_settings.bitrate())
         {
             case 1000000:
-                _serport->write("S8\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 1000000);
                 break;
             case 800000:
-                _serport->write("S7\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 800000);
                 break;
             case 500000:
-                _serport->write("S6\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 500000);
                 break;
             case 250000:
-                _serport->write("S5\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 250000);
                 break;
             case 125000:
-                _serport->write("S4\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 125000);
                 break;
             case 100000:
-                _serport->write("S3\r", 3);
-                _serport->flush();
-                break;
-            case 83333:
-                _serport->write("S9\r", 3);
-                _serport->flush();
-                break;
-            case 75000:
-                _serport->write("SA\r", 3);
-                _serport->flush();
-                break;
-            case 62500:
-                _serport->write("SB\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 100000);
                 break;
             case 50000:
-                _serport->write("S2\r", 3);
-                _serport->flush();
-                break;
-            case 33333:
-                _serport->write("SC\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 50000);
                 break;
             case 20000:
-                _serport->write("S1\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 20000);
                 break;
             case 10000:
-                _serport->write("S0\r", 3);
-                _serport->flush();
-                break;
-            case 5000:
-                _serport->write("SD\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 10000);
                 break;
             default:
                 // Default to 10k
-                _serport->write("S0\r", 3);
-                _serport->flush();
+                m_GrIPHandler->CAN_SetBaudrate(_idx, 10000);
                 break;
         }
     }
 
-    _serport->waitForBytesWritten(200);
+    //_serport->waitForBytesWritten(20);
 
     // Set configured BRS rate
-    if(_config.supports_canfd)
+    /*if(_config.supports_canfd)
     {
         if(_settings.isCustomFdBitrate())
         {
@@ -455,37 +383,22 @@ void GrIPInterface::open()
             }
         }
     }
-    _serport->waitForBytesWritten(100);
+    _serport->waitForBytesWritten(20);*/
 
     // Set Listen Only Mode
     if(_settings.isListenOnlyMode())
     {
-        _serport->write("M1\r", 3);
-        _serport->flush();
+        m_GrIPHandler->Mode(_idx, true);
     }
     else
     {
-        _serport->write("M0\r", 3);
-        _serport->flush();
+        m_GrIPHandler->Mode(_idx, false);
     }
-    _serport->waitForBytesWritten(100);
+    /*_serport->waitForBytesWritten(100);*/
 
-    // Open the port
-    _serport->write("O\r", 2);
-    _serport->flush();
-    _serport->waitForBytesWritten(100);
+    m_GrIPHandler->SetStatus(true);
 
-    // Clear serial port receiver
-    if(_serport->waitForReadyRead(10))
-    {
-        qApp->processEvents();
-
-        if(_serport->bytesAvailable())
-        {
-            // This is called when readyRead() is emitted
-            _serport->readAll();
-        }
-    }*/
+    m_GrIPHandler->SetEchoTx(true);
 
     m_GrIPHandler->EnableChannel(_idx, true);
     m_TxFrames.clear();
@@ -499,9 +412,6 @@ void GrIPInterface::open()
     _status.tx_count = 0;
     _status.tx_errors = 0;
     _status.tx_dropped = 0;
-
-    // Release port mutex
-    //_serport_mutex.unlock();
 }
 
 void GrIPInterface::handleSerialError(QSerialPort::SerialPortError error)
@@ -571,6 +481,8 @@ void GrIPInterface::close()
 
     m_GrIPHandler->EnableChannel(_idx, false);
 
+    m_GrIPHandler->SetStatus(false);
+
     m_TxFrames.clear();
 }
 
@@ -585,12 +497,12 @@ void GrIPInterface::sendMessage(const CanMessage &msg)
 
     if(m_GrIPHandler->CanTransmit(_idx, msg))
     {
-        _status.tx_count++;
-        _status.can_state = state_tx_success;
+        //_status.tx_count++;
+        //_status.can_state = state_tx_success;
 
         if(msg.isShow())
         {
-            m_TxFrames.append(msg);
+            //m_TxFrames.append(msg);
         }
     }
     else
@@ -619,11 +531,11 @@ bool GrIPInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout
     }
 
     // Add TX frames to trace window
-    if(m_TxFrames.size())
+    /*if(m_TxFrames.size())
     {
         msglist.append(m_TxFrames);
         m_TxFrames.clear();
-    }
+    }*/
 
     // Read all RX frames
     while(m_GrIPHandler->CanAvailable(_idx))
@@ -631,12 +543,32 @@ bool GrIPInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout
         auto msg = m_GrIPHandler->ReceiveCan(_idx);
         if(msg.getId() != 0)
         {
-            msg.setErrorFrame(0);
+            // Defaults
             msg.setInterfaceId(getId());
-            msg.setBRS(false);
 
-            msglist.append(msg);
-            _status.rx_count++;
+            if(msg.isRX() == false)
+            {
+                if(msg.isErrorFrame() == false)
+                {
+                    _status.tx_count++;
+                    _status.can_state = state_tx_success;
+                }
+                else
+                {
+                    _status.tx_errors++;
+                    _status.can_state = state_tx_fail;
+                }
+
+                if(msg.isShow())
+                {
+                    msglist.append(msg);
+                }
+            }
+            else
+            {
+                msglist.append(msg);
+                _status.rx_count++;
+            }
         }
     }
 
@@ -669,206 +601,3 @@ bool GrIPInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout
 
     return true;
 }
-
-/*bool GrIPInterface::parseMessage(CanMessage &msg)
-{
-    // Set timestamp to current time
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    msg.setTimestamp(tv);
-
-    // Defaults
-    msg.setErrorFrame(0);
-    msg.setInterfaceId(getId());
-    msg.setId(0);
-    msg.setRTR(false);
-    msg.setFD(false);
-    msg.setBRS(false);
-    msg.setRX(true);
-
-    // Convert from ASCII (2nd character to end)
-    for (int i = 1; i < _rx_linbuf_ctr; i++)
-    {
-        // Lowercase letters
-        if(_rx_linbuf[i] >= 'a')
-            _rx_linbuf[i] = _rx_linbuf[i] - 'a' + 10;
-        // Uppercase letters
-        else if(_rx_linbuf[i] >= 'A')
-            _rx_linbuf[i] = _rx_linbuf[i] - 'A' + 10;
-        // Numbers
-        else
-            _rx_linbuf[i] = _rx_linbuf[i] - '0';
-    }
-
-    bool is_extended = false;
-    bool is_rtr = false;
-
-    // Handle each incoming command
-    switch(_rx_linbuf[0])
-    {
-        // Transmit data frame command
-        case 't':
-        {
-            is_extended = false;
-        }
-        break;
-        case 'T':
-        {
-            is_extended = true;
-        }
-        break;
-
-        // Transmit remote frame command
-        case 'r':
-        {
-            is_extended = false;
-            is_rtr = true;
-        }
-        break;
-        case 'R':
-        {
-            is_extended = true;
-            is_rtr = true;
-        }
-        break;
-
-        // CANFD transmit - no BRS
-        case 'd':
-        {
-            is_extended = false;
-            msg.setFD(true);
-            msg.setBRS(false);
-        }
-        break;
-        case 'D':
-        {
-            is_extended = true;
-            msg.setFD(true);
-            msg.setBRS(false);
-        }
-        break;
-
-        // CANFD transmit - with BRS
-        case 'b':
-        {
-            is_extended = false;
-            msg.setFD(true);
-            msg.setBRS(true);
-        }
-        break;
-        case 'B':
-        {
-            is_extended = true;
-            msg.setFD(true);
-            msg.setBRS(true);
-        }
-        break;
-
-        // Invalid command
-        default:
-        {
-            // Reset buffer
-            _rx_linbuf_ctr = 0;
-            _rx_linbuf[0] = '\0';
-            return false;
-        }
-    }
-
-    // Start parsing at second byte (skip command byte)
-    uint8_t parse_loc = 1;
-
-    // Default to standard id len
-    uint8_t id_len = GRIP_STD_ID_LEN;
-
-    // Update length if message is extended ID
-    if(is_extended)
-        id_len = GRIP_EXT_ID_LEN;
-
-    uint32_t id_tmp = 0;
-
-    // Iterate through ID bytes
-    while(parse_loc <= id_len)
-    {
-        id_tmp <<= 4;
-        id_tmp += _rx_linbuf[parse_loc++];
-    }
-
-    msg.setId(id_tmp);
-    msg.setExtended(is_extended);
-    msg.setRTR(is_rtr);
-
-    // Attempt to parse DLC and check sanity
-    uint8_t dlc_code_raw = _rx_linbuf[parse_loc++];
-
-    // If dlc is too long for an FD frame
-    if(msg.isFD() && dlc_code_raw > 0xF)
-    {
-        return false;
-    }
-    if(!msg.isFD() && dlc_code_raw > 0x8)
-    {
-        return false;
-    }
-
-    if(dlc_code_raw > 0x8)
-    {
-        switch(dlc_code_raw)
-        {
-        case 0x9:
-            dlc_code_raw = 12;
-            break;
-        case 0xA:
-            dlc_code_raw = 16;
-            break;
-        case 0xB:
-            dlc_code_raw = 20;
-            break;
-        case 0xC:
-            dlc_code_raw = 24;
-            break;
-        case 0xD:
-            dlc_code_raw = 32;
-            break;
-        case 0xE:
-            dlc_code_raw = 48;
-            break;
-        case 0xF:
-            dlc_code_raw = 64;
-            break;
-        default:
-            dlc_code_raw = 0;
-            perror("Invalid length");
-            break;
-        }
-    }
-
-    msg.setLength(dlc_code_raw);
-
-    // Calculate number of bytes we expect in the message
-    int8_t bytes_in_msg = dlc_code_raw;
-
-    if(bytes_in_msg < 0)
-    {
-        perror("Invalid length < 0");
-        return false;
-    }
-    if(bytes_in_msg > 64)
-    {
-        perror("Invalid length > 64");
-        return false;
-    }
-
-    // Parse data
-    // TODO: Guard against walking off the end of the string!
-    for (uint8_t i = 0; i < bytes_in_msg; i++)
-    {
-        msg.setByte(i,  (_rx_linbuf[parse_loc] << 4) + _rx_linbuf[parse_loc+1]);
-        parse_loc += 2;
-    }
-
-    // Reset buffer
-    _rx_linbuf_ctr = 0;
-    _rx_linbuf[0] = '\0';
-
-    return true;
-}*/

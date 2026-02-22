@@ -1,8 +1,21 @@
 /*
 
-  Copyright (c) 2026 Antigravity AI
+  Copyright (c) 2026 Jayachandran Dharuman
 
-  This file is part of cangaroo.
+  This file is part of CANgaroo.
+
+  cangaroo is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+
+  cangaroo is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with cangaroo.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -61,6 +74,44 @@ void TextVisualization::updateUi()
             it.value().valueLabel->setText(QString::number(it.value().value, 'f', 2));
             it.value().updated = false;
         }
+    }
+}
+
+void TextVisualization::applyTheme(ThemeManager::Theme theme)
+{
+    Q_UNUSED(theme);
+    // Refresh colors on all cards
+    int index = 0;
+    for (auto it = _signalDataMap.begin(); it != _signalDataMap.end(); ++it) {
+        QFrame *card = qobject_cast<QFrame*>(it.value().card);
+        
+        bool isEven = (index % 2 == 0);
+        QColor base = palette().color(QPalette::Base);
+        QColor alternate = palette().color(QPalette::AlternateBase);
+        if (alternate == base) {
+            alternate = base.lighter(105);
+            if (base.value() > 200) alternate = base.darker(105);
+        }
+        
+        QColor bg = isEven ? base : alternate;
+        QColor border = palette().color(QPalette::WindowText);
+        border.setAlpha(30);
+
+        card->setStyleSheet(QString("QFrame { background-color: %1; border-bottom: 1px solid %2; color: %3; }")
+                            .arg(bg.name())
+                            .arg(border.name())
+                            .arg(palette().color(QPalette::Text).name()));
+                            
+        // Update labels within the card
+        auto labels = card->findChildren<QLabel*>();
+        for (QLabel* label : labels) {
+             QString currentStyle = label->styleSheet();
+             // Just force color update for labels that don't have hardcoded colors
+             if (!currentStyle.contains("background-color:")) {
+                 label->setStyleSheet(currentStyle + QString("; color: %1;").arg(palette().color(QPalette::Text).name()));
+             }
+        }
+        index++;
     }
 }
 

@@ -20,6 +20,16 @@ DecodeStatus UdsDecoder::tryDecode(const CanMessage& frame, ProtocolMessage& out
     if (type == 0) { // Single Frame
         int size = frame.getByte(0) & 0x0F;
         if (size > 0 && size <= frame.getLength() - 1) {
+            uint8_t sid = frame.getByte(1);
+            
+            // Strict check: Only consider UDS if the SID is a recognized service
+            // to avoid capturing generic 11-bit traffic (like cangen -L 8).
+            QString serviceName = interpretService(sid);
+            if (serviceName.startsWith("sid 0x")) {
+                // Not a recognized service, probably not UDS
+                return DecodeStatus::Ignored;
+            }
+
             outMsg.payload = QByteArray();
             for (int i = 0; i < size; ++i) {
                 outMsg.payload.append(frame.getByte(i + 1));
@@ -28,9 +38,8 @@ DecodeStatus UdsDecoder::tryDecode(const CanMessage& frame, ProtocolMessage& out
             outMsg.protocol = "uds";
             outMsg.timestamp = static_cast<uint64_t>(frame.getFloatTimestamp() * 1000000.0);
             
-            uint8_t sid = outMsg.payload.at(0);
             outMsg.id = sid;
-            outMsg.name = interpretService(sid);
+            outMsg.name = serviceName;
             
             // Type detection: Request vs Response
             // In Cangaroo, we can often tell by ID (e.g., 0x7E0 is req, 0x7E8 is resp)

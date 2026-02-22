@@ -9,14 +9,65 @@ UnifiedTraceItem::UnifiedTraceItem(const CanMessage& frame, UnifiedTraceItem* pa
 UnifiedTraceItem::UnifiedTraceItem(const ProtocolMessage& msg, UnifiedTraceItem* parent)
     : m_parentItem(parent), m_isProtocol(true), m_protocolMessage(msg)
 {
+    m_timestamp = msg.timestamp;
+
+    // Create children for metadata if any
+    if (!msg.metadata.isEmpty()) {
+        for (auto it = msg.metadata.begin(); it != msg.metadata.end(); ++it) {
+            appendChild(std::make_shared<UnifiedTraceItem>(it.key(), it.value().toString(), this));
+        }
+    }
+
     // Create children for each raw frame
     for (const auto& frame : msg.rawFrames) {
         appendChild(std::make_shared<UnifiedTraceItem>(frame, this));
     }
 }
 
+UnifiedTraceItem::UnifiedTraceItem(const QString& name, const QString& value, UnifiedTraceItem* parent)
+    : m_parentItem(parent), m_isProtocol(false), m_isMetadata(true), m_metadataName(name), m_metadataValue(value)
+{
+    if (m_parentItem) {
+        m_timestamp = m_parentItem->timestamp();
+    }
+}
+
 UnifiedTraceItem::~UnifiedTraceItem()
 {
+}
+
+void UnifiedTraceItem::updateProtocolMessage(const ProtocolMessage& msg)
+{
+    m_protocolMessage = msg;
+    m_timestamp = msg.timestamp;
+
+    // Update metadata children if they exist
+    if (!msg.metadata.isEmpty()) {
+        for (auto it = msg.metadata.begin(); it != msg.metadata.end(); ++it) {
+            // Find existing metadata child by name
+            for (auto& child : m_childItems) {
+                if (child->m_isMetadata && child->m_metadataName == it.key()) {
+                    child->m_metadataValue = it.value().toString();
+                    child->m_timestamp = m_timestamp;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Update raw frame children
+    // Note: We assume the number/order of raw frames doesn't change for the same PGN+SA aggregation
+    // If it does (e.g. multi-frame vs single-frame), we might need more complex logic.
+    int frameIdx = 0;
+    for (auto& child : m_childItems) {
+        if (!child->m_isProtocol && !child->m_isMetadata) {
+            if (frameIdx < msg.rawFrames.size()) {
+                child->m_rawFrame = msg.rawFrames.at(frameIdx);
+                child->m_timestamp = static_cast<uint64_t>(child->m_rawFrame.getFloatTimestamp() * 1000000.0);
+                frameIdx++;
+            }
+        }
+    }
 }
 
 void UnifiedTraceItem::appendChild(std::shared_ptr<UnifiedTraceItem> child)

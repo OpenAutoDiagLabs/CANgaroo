@@ -61,6 +61,18 @@ TxGeneratorWindow::TxGeneratorWindow(QWidget *parent, Backend &backend) :
         }
     });
 
+    ui->treeActive->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    ui->treeAvailable->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+    // Add Random Payload button programmatically
+    _btnRandomPayload = new QPushButton(tr("🎲 Randomize Payload"), this);
+    _btnRandomPayload->setToolTip(tr("Randomize data bytes for selected messages"));
+    _btnRandomPayload->setStyleSheet("QPushButton { font-weight: bold; background: #6f42c1; color: white; border-radius: 4px; padding: 4px 8px; } QPushButton:hover { background: #5a32a3; }");
+    ui->horizontalLayoutActiveControls->insertWidget(3, _btnRandomPayload); // Insert next to Run/Stop
+    connect(_btnRandomPayload, &QPushButton::released, this, &TxGeneratorWindow::onRandomPayloadReleased);
+
+    srand(time(NULL));
+
     refreshInterfaces();
     updateMeasurementState();
     populateDbcMessages();
@@ -185,26 +197,34 @@ void TxGeneratorWindow::on_cbLayoutCompact_toggled(bool checked)
 
 void TxGeneratorWindow::on_btnAddToList_released()
 {
-    QTreeWidgetItem *item = ui->treeAvailable->currentItem();
-    if (!item) return;
+    QList<QTreeWidgetItem*> selected = ui->treeAvailable->selectedItems();
+    if (selected.isEmpty()) {
+        QTreeWidgetItem *current = ui->treeAvailable->currentItem();
+        if (current) selected.append(current);
+    }
 
-    CanDbMessage *dbMsg = (CanDbMessage*)item->data(0, Qt::UserRole).value<void*>();
-    if (!dbMsg) return;
+    if (selected.isEmpty()) return;
 
-    CyclicMessage cm;
-    cm.msg = CanMessage(); // Ensure fresh instance
-    cm.msg.setId(dbMsg->getRaw_id());
-    cm.msg.setLength(dbMsg->getDlc());
-    cm.msg.setExtended(dbMsg->getRaw_id() > 0x7FF);
-    cm.name = dbMsg->getName();
-    cm.interval = 100;
-    cm.enabled = false;
-    cm.lastSent = 0;
-    cm.interfaceId = (CanInterfaceId)ui->comboBoxInterface->currentData().toUInt();
-    cm.dbMsg = dbMsg;
+    foreach (QTreeWidgetItem *item, selected) {
+        CanDbMessage *dbMsg = (CanDbMessage*)item->data(0, Qt::UserRole).value<void*>();
+        if (!dbMsg) continue;
 
-    _cyclicMessages.append(cm);
+        CyclicMessage cm;
+        cm.msg = CanMessage(); // Ensure fresh instance
+        cm.msg.setId(dbMsg->getRaw_id());
+        cm.msg.setLength(dbMsg->getDlc());
+        cm.msg.setExtended(dbMsg->getRaw_id() > 0x7FF);
+        cm.name = dbMsg->getName();
+        cm.interval = 100;
+        cm.enabled = false;
+        cm.lastSent = 0;
+        cm.interfaceId = (CanInterfaceId)ui->comboBoxInterface->currentData().toUInt();
+        cm.dbMsg = dbMsg;
+
+        _cyclicMessages.append(cm);
+    }
     updateActiveList();
+    ui->treeActive->scrollToBottom();
 }
 
 void TxGeneratorWindow::on_btnAddManual_released()
@@ -227,6 +247,7 @@ void TxGeneratorWindow::on_btnAddManual_released()
 
     _cyclicMessages.append(cm);
     updateActiveList();
+    ui->treeActive->scrollToBottom();
 }
 
 void TxGeneratorWindow::on_btnRemove_released()
@@ -629,4 +650,31 @@ void TxGeneratorWindow::stopAll()
 QSize TxGeneratorWindow::sizeHint() const
 {
     return QSize(1200, 600);
+}
+
+void TxGeneratorWindow::onRandomPayloadReleased()
+{
+    QList<QTreeWidgetItem*> selected = ui->treeActive->selectedItems();
+    if (selected.isEmpty()) {
+        int row = ui->treeActive->currentIndex().row();
+        if (row >= 0 && row < _cyclicMessages.size()) {
+            selected.append(ui->treeActive->currentItem());
+        }
+    }
+
+    foreach (QTreeWidgetItem *item, selected) {
+        int row = ui->treeActive->indexOfTopLevelItem(item);
+        if (row >= 0 && row < _cyclicMessages.size()) {
+            CyclicMessage &cm = _cyclicMessages[row];
+            for (int i = 0; i < cm.msg.getLength(); ++i) {
+                cm.msg.setDataAt(i, (uint8_t)(rand() % 256));
+            }
+            updateRowUI(row);
+            
+            // If this is the currently focused message in the bit matrix, update it
+            if (item == ui->treeActive->currentItem()) {
+                emit messageSelected(cm.msg, cm.name, cm.interfaceId, cm.dbMsg);
+            }
+        }
+    }
 }

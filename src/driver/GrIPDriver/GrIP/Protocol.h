@@ -74,7 +74,7 @@ void Protocol_RequestDeviceInfo();
 
 void Protocol_SetStatusLED(StatusLedState_e state);
 
-void Protocol_SendCANCfg(uint32_t can1_baud, uint32_t can2_baud);
+void Protocol_SendCANCfg(uint8_t channel, uint32_t can_baud);
 void Protocol_SendLINCfg(Protocol_LinCfg_t *lin1, Protocol_LinCfg_t *lin2);
 
 void Protocol_StartStopCAN(bool start_can1, bool start_can2);

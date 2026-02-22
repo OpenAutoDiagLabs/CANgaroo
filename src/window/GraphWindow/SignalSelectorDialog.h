@@ -1,8 +1,21 @@
 /*
 
-  Copyright (c) 2026 Antigravity AI
+  Copyright (c) 2026 Jayachandran Dharuman
 
-  This file is part of cangaroo.
+  This file is part of CANgaroo.
+
+  cangaroo is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+
+  cangaroo is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with cangaroo.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -12,6 +25,7 @@
 #include <QTreeWidget>
 #include <QLineEdit>
 #include <QCheckBox>
+#include <core/ThemeManager.h>
 #include <core/Backend.h>
 #include <core/CanDbSignal.h>
 
@@ -25,6 +39,8 @@ public:
 private slots:
     void onSearchTextChanged(const QString &text);
     void onShowSelectedOnlyToggled(bool checked);
+    void onItemChanged(QTreeWidgetItem *item, int column);
+    void applyTheme(ThemeManager::Theme theme);
 
 private:
     Backend &_backend;

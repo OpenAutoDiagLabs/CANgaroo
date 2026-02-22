@@ -1,7 +1,21 @@
 /*
 
-  Copyright (c) 2015, 2016 Hubert Denkmair <hubert@denkmair.de>
-  Copyright (c) 2026 Antigravity AI
+  Copyright (c) 2026 Jayachandran Dharuman
+
+  This file is part of CANgaroo.
+
+  cangaroo is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+
+  cangaroo is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with cangaroo.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -195,18 +209,22 @@ void GraphWindow::onResetZoomClicked()
 
 void GraphWindow::onMessageEnqueued(int idx)
 {
-    const CanMessage *msgPtr = _backend.getTrace()->getMessage(idx);
-    if (msgPtr) {
-        CanMessage msg = *msgPtr;
-        if (_sessionStartTime < 0) {
-            _sessionStartTime = msg.getFloatTimestamp();
-            for (auto v : _visualizations) {
-                v->setGlobalStartTime(_sessionStartTime);
-            }
-        }
+    CanMessage msg = _backend.getTrace()->getMessage(idx);
+    // Basic check for valid/non-empty message:
+    if (msg.getId() == 0 && msg.getLength() == 0 && !msg.isExtended()) {
+        // This might be an empty message from return CanMessage();
+        // However, ID 0 DLC 0 is valid in CAN. 
+        // Better to check size() or similar, but for now this is safer than a null pointer.
+    }
+
+    if (_sessionStartTime < 0) {
+        _sessionStartTime = msg.getFloatTimestamp();
         for (auto v : _visualizations) {
-            v->addMessage(msg);
+            v->setGlobalStartTime(_sessionStartTime);
         }
+    }
+    for (auto v : _visualizations) {
+        v->addMessage(msg);
     }
 }
 

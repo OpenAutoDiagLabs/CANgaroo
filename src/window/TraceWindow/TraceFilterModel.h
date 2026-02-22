@@ -5,6 +5,7 @@
 
 class TraceFilterModel : public QSortFilterProxyModel
 {
+    Q_OBJECT
 public:
     explicit TraceFilterModel(QObject *parent = nullptr);
 

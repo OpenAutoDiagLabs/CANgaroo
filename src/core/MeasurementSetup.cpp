@@ -94,7 +94,9 @@ MeasurementNetwork *MeasurementSetup::createNetwork()
 
 void MeasurementSetup::removeNetwork(MeasurementNetwork *network)
 {
-    _networks.removeAll(network);
+    if (_networks.removeAll(network) > 0) {
+        delete network;
+    }
 }
 
 
