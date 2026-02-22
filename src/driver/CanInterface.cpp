@@ -20,11 +20,12 @@
 */
 
 #include "CanInterface.h"
+#include <core/CanMessage.h>
 
 #include <QList>
 
 CanInterface::CanInterface(CanDriver *driver)
-  :QObject(0), _id(-1), _driver(driver)
+  :QObject(0), _id(-1), _driver(driver), _totalBits(0)
 {
 }
 
@@ -100,6 +101,32 @@ CanInterfaceId CanInterface::getId() const
 void CanInterface::setId(CanInterfaceId id)
 {
     _id = id;
+}
+
+uint64_t CanInterface::getNumBits()
+{
+    return _totalBits;
+}
+
+void CanInterface::addFrameBits(const CanMessage &msg)
+{
+    uint32_t dlc = msg.getLength();
+    uint32_t bits = 47 + (dlc * 8); // Std CAN overhead + data bits
+
+    if (msg.isExtended()) {
+        bits += 18 + 2; // Extended ID (18 additional bits + SRR/IDE overhead)
+    }
+
+    if (msg.isFD()) {
+        // Simple FD approximation:
+        // Standard Frame is ~126-150 bits total for standard or ~500+ for FD.
+        // For simplicity, we use the same formula but adjusted.
+        // Actually, FD has significantly more overhead.
+        bits += 20; // Extra overhead bits for FD
+    }
+
+    bits += bits / 5; // Approximate bit stuffing
+    _totalBits += bits;
 }
 
 QString CanInterface::getVersion()

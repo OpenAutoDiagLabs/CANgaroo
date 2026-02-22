@@ -34,9 +34,11 @@ macx:OBJECTS_DIR = ../build/o/mac
 
 
 SOURCES += main.cpp\
-    mainwindow.cpp
+    mainwindow.cpp \
+    window/ConditionalLoggingDialog.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    window/ConditionalLoggingDialog.h
 
 FORMS    += mainwindow.ui
 
@@ -58,6 +60,8 @@ include($$PWD/window/TxGeneratorWindow/TxGeneratorWindow.pri)
 unix:PKGCONFIG += libnl-3.0
 unix:PKGCONFIG += libnl-route-3.0
 unix:INCLUDEPATH += /usr/include/libnl3
+# Surgical fix for redundant /lib/lib path from pkg-config
+unix:LIBS ~= s|/usr/lib/lib/|/usr/lib/|g
 unix:include($$PWD/driver/SocketCanDriver/SocketCanDriver.pri)
 
 include($$PWD/driver/CANBlastDriver/CANBlastDriver.pri)

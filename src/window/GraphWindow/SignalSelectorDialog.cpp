@@ -193,29 +193,52 @@ void SignalSelectorDialog::onItemChanged(QTreeWidgetItem *item, int column)
     _tree->blockSignals(true);
     Qt::CheckState state = item->checkState(0);
 
-    // If it's a message/network/node (container), toggle all children
-    for (int i = 0; i < item->childCount(); ++i) {
-        item->child(i)->setCheckState(0, state);
-        // Recursively handle sub-children if any
-        for (int j = 0; j < item->child(i)->childCount(); ++j) {
-            item->child(i)->child(j)->setCheckState(0, state);
+    // 1. Propagate DOWN to all children recursively
+    auto propagateDown = [&](auto self, QTreeWidgetItem *parentItem, Qt::CheckState checkState) -> void {
+        for (int i = 0; i < parentItem->childCount(); ++i) {
+            QTreeWidgetItem *child = parentItem->child(i);
+            child->setCheckState(0, checkState);
+            self(self, child, checkState);
         }
-    }
+    };
+    propagateDown(propagateDown, item, state);
 
-    // If it's a child, update parent's state (PartiallyChecked logic)
-    QTreeWidgetItem *parent = item->parent();
-    if (parent) {
+    // 2. Propagate UP to all parents recursively and update visual highlighting
+    auto propagateUp = [&](auto self, QTreeWidgetItem *childItem) -> void {
+        QTreeWidgetItem *parent = childItem->parent();
+        if (!parent) return;
+
         int checkedCount = 0;
+        int partiallyCheckedCount = 0;
         for (int i = 0; i < parent->childCount(); ++i) {
-            if (parent->child(i)->checkState(0) != Qt::Unchecked) {
-                checkedCount++;
-            }
+            Qt::CheckState childState = parent->child(i)->checkState(0);
+            if (childState == Qt::Checked) checkedCount++;
+            else if (childState == Qt::PartiallyChecked) partiallyCheckedCount++;
         }
-        
-        if (checkedCount == 0) parent->setCheckState(0, Qt::Unchecked);
-        else if (checkedCount == parent->childCount()) parent->setCheckState(0, Qt::Checked);
-        else parent->setCheckState(0, Qt::PartiallyChecked);
-    }
+
+        if (checkedCount == parent->childCount()) {
+            parent->setCheckState(0, Qt::Checked);
+        } else if (checkedCount > 0 || partiallyCheckedCount > 0) {
+            parent->setCheckState(0, Qt::PartiallyChecked);
+        } else {
+            parent->setCheckState(0, Qt::Unchecked);
+        }
+
+        // Apply visual highlighting (bold font) if item or any child is checked
+        QFont font = parent->font(0);
+        bool shouldBeBold = (parent->checkState(0) != Qt::Unchecked);
+        font.setBold(shouldBeBold);
+        parent->setFont(0, font);
+
+        self(self, parent);
+    };
+
+    // Also update the current item's font
+    QFont itemFont = item->font(0);
+    itemFont.setBold(state != Qt::Unchecked);
+    item->setFont(0, itemFont);
+
+    propagateUp(propagateUp, item);
 
     _tree->blockSignals(false);
 }
@@ -255,36 +278,48 @@ void SignalSelectorDialog::applyTheme(ThemeManager::Theme theme)
     if (isDark) {
         // Targeted styling for tree indicators (CAN messages and signals)
         QString treeStyle = 
-            "QTreeWidget::indicator, QTreeView::indicator {"
-            "  width: 16px;"
-            "  height: 16px;"
-            "  border: 2px solid #FFFFFF;" // Pure white border for maximum visibility
-            "  border-radius: 3px;"
-            "  background-color: transparent;"
+            "QTreeView::indicator {"
+            "  width: 14px;"
+            "  height: 14px;"
+            "  border: 1px solid #999;"
+            "  border-radius: 2px;"
+            "  background-color: #333;"
             "}"
-            "QTreeWidget::indicator:checked, QTreeView::indicator:checked {"
-            "  background-color: #00FF00;"
+            "QTreeView::indicator:checked {"
+            "  background-color: #27ae60;"
+            "  border: 1px solid #2ecc71;"
             "}"
-            "QTreeWidget::indicator:indeterminate, QTreeView::indicator:indeterminate {"
+            "QTreeView::indicator:unchecked {"
+            "  background-color: #333;"
+            "}"
+            "QTreeView::indicator:unchecked:hover {"
+            "  border: 1px solid #ccc;"
+            "}"
+            "QTreeView::indicator:indeterminate {"
             "  background-color: #555;"
             "}";
 
         // Targeted styling for the standalone "Show selection only" checkbox
         QString checkStyle = 
             "QCheckBox::indicator {"
-            "  width: 16px;"
-            "  height: 16px;"
-            "  border: 2px solid #FFFFFF;"
-            "  border-radius: 3px;"
-            "  background-color: transparent;"
+            "  width: 14px;"
+            "  height: 14px;"
+            "  border: 1px solid #999;"
+            "  border-radius: 2px;"
+            "  background-color: #333;"
             "}"
             "QCheckBox::indicator:checked {"
-            "  background-color: #00FF00;"
+            "  background-color: #27ae60;"
+            "  border: 1px solid #2ecc71;"
+            "}"
+            "QCheckBox::indicator:unchecked:hover {"
+            "  border: 1px solid #ccc;"
             "}";
 
         _tree->setStyleSheet(treeStyle);
         _showSelectedOnly->setStyleSheet(checkStyle);
-    } else {
+    }
+ else {
         // Restore standard Light Mode styling
         _tree->setStyleSheet("");
         _showSelectedOnly->setStyleSheet("");

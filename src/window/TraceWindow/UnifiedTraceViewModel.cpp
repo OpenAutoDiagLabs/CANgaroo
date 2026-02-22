@@ -2,6 +2,8 @@
 #include <core/CanTrace.h>
 #include <core/Backend.h>
 #include <QColor>
+#include <QSet>
+#include <QDateTime>
 #include <core/ThemeManager.h>
 
 UnifiedTraceViewModel::UnifiedTraceViewModel(Backend &backend, Category category)
@@ -14,8 +16,11 @@ UnifiedTraceViewModel::UnifiedTraceViewModel(Backend &backend, Category category
 
     connect(backend.getTrace(), SIGNAL(beforeAppend(int)), this, SLOT(beforeAppend(int)));
     connect(backend.getTrace(), SIGNAL(afterAppend()), this, SLOT(afterAppend()));
+    connect(backend.getTrace(), SIGNAL(beforeRemove(int)), this, SLOT(beforeRemove(int)));
+    connect(backend.getTrace(), SIGNAL(afterRemove(int)), this, SLOT(afterRemove(int)));
     connect(backend.getTrace(), SIGNAL(beforeClear()), this, SLOT(beforeClear()));
     connect(backend.getTrace(), SIGNAL(afterClear()), this, SLOT(afterClear()));
+    connect(&backend, SIGNAL(onSetupChanged()), this, SLOT(onSetupChanged()));
 }
 
 UnifiedTraceViewModel::~UnifiedTraceViewModel()
@@ -70,12 +75,31 @@ int UnifiedTraceViewModel::rowCount(const QModelIndex &parent) const
 
 int UnifiedTraceViewModel::columnCount(const QModelIndex &parent) const
 {
-    return column_count;
+    return BaseTraceViewModel::column_count;
 }
 
 bool UnifiedTraceViewModel::hasChildren(const QModelIndex &parent) const
 {
     return rowCount(parent) > 0;
+}
+
+CanMessage UnifiedTraceViewModel::getMessage(const QModelIndex &index) const
+{
+    if (!index.isValid()) return CanMessage();
+    UnifiedTraceItem *item = static_cast<UnifiedTraceItem*>(index.internalPointer());
+    if (item->isProtocol()) {
+        const ProtocolMessage& pmsg = item->protocolMessage();
+        return pmsg.rawFrames.isEmpty() ? CanMessage() : pmsg.rawFrames.first();
+    } else if (item->isMetadata()) {
+        UnifiedTraceItem *parent = item->parentItem();
+        if (parent && parent->isProtocol()) {
+            const ProtocolMessage& pmsg = parent->protocolMessage();
+            return pmsg.rawFrames.isEmpty() ? CanMessage() : pmsg.rawFrames.first();
+        }
+        return CanMessage();
+    } else {
+        return item->rawFrame();
+    }
 }
 
 QVariant UnifiedTraceViewModel::data(const QModelIndex &index, int role) const
@@ -106,7 +130,7 @@ void UnifiedTraceViewModel::afterAppend()
 {
     CanTrace *trace = backend()->getTrace();
     int size = trace->size();
-    
+    QSet<int> updatedRows;
     if (m_lastProcessedIndex >= size) {
         m_lastProcessedIndex = size - 1;
     }
@@ -130,16 +154,7 @@ void UnifiedTraceViewModel::afterAppend()
                 if (m_j1939AggregatedMap.count(key)) {
                     auto &item = m_j1939AggregatedMap[key];
                     item->updateProtocolMessage(pmsg);
-                    int r = item->row();
-                    QModelIndex idx = createIndex(r, 0, item.get());
-                    emit dataChanged(idx, idx.sibling(r, column_count - 1));
-                    
-                    // Also notify children updates if expanded
-                    if (item->childCount() > 0) {
-                        QModelIndex firstChild = index(0, 0, idx);
-                        QModelIndex lastChild = index(item->childCount() - 1, column_count - 1, idx);
-                        emit dataChanged(firstChild, lastChild);
-                    }
+                    updatedRows.insert(item->row());
                 } else {
                     shouldAppend = true;
                 }
@@ -176,6 +191,56 @@ void UnifiedTraceViewModel::afterAppend()
         }
         endInsertRows();
     }
+
+    // Emit batched dataChanged signals for aggregated rows
+    for (int row : updatedRows) {
+        auto item = m_rootItem->child(row);
+        if (item) {
+            QModelIndex idx = createIndex(row, 0, item.get());
+            emit dataChanged(idx, idx.sibling(row, column_count - 1));
+            
+            // Also notify children updates if expanded
+            if (item->childCount() > 0) {
+                QModelIndex firstChild = index(0, 0, idx);
+                QModelIndex lastChild = index(item->childCount() - 1, column_count - 1, idx);
+                emit dataChanged(firstChild, lastChild);
+            }
+        }
+    }
+
+    // Hard row limit check for the UI model
+    if (m_rootItem->childCount() > m_maxRows) {
+        int toRemove = m_maxRows / 10; // Remove 10%
+        if (toRemove > 0) {
+            beginRemoveRows(QModelIndex(), 0, toRemove - 1);
+            m_rootItem->removeChildren(0, toRemove);
+            // After removal, row indices of remaining items must be updated
+            for (int i = 0; i < m_rootItem->childCount(); ++i) {
+                m_rootItem->child(i)->setRow(i);
+            }
+            // Rebuild aggregated map to point to updated rows correctly after pruning
+            m_j1939AggregatedMap.clear();
+            for (int i = 0; i < m_rootItem->childCount(); ++i) {
+                auto child = m_rootItem->child(i);
+                if (child && child->isProtocol() && child->protocolMessage().protocol.compare("j1939", Qt::CaseInsensitive) == 0) {
+                    m_j1939AggregatedMap[getJ1939Key(child->protocolMessage())] = child;
+                }
+            }
+            endRemoveRows();
+        }
+    }
+}
+
+void UnifiedTraceViewModel::beforeRemove(int count)
+{
+    // Adjust lastProcessedIndex since CanTrace removed items from the front
+    m_lastProcessedIndex -= count;
+    if (m_lastProcessedIndex < -1) m_lastProcessedIndex = -1;
+}
+
+void UnifiedTraceViewModel::afterRemove(int count)
+{
+    // Nothing more needed here specifically for m_lastProcessedIndex
 }
 
 void UnifiedTraceViewModel::beforeClear()
@@ -195,10 +260,28 @@ void UnifiedTraceViewModel::afterClear()
     endResetModel();
 }
 
+void UnifiedTraceViewModel::onSetupChanged()
+{
+    beginResetModel();
+    m_rootItem = std::make_shared<UnifiedTraceItem>(CanMessage());
+    m_protocolManager.reset();
+    m_lastProcessedIndex = -1;
+    m_globalIndexCounter = 1;
+    m_firstTimestamp = 0;
+    m_previousRowTimestamp = 0;
+    m_j1939AggregatedMap.clear();
+    
+    // Re-process all frames from trace buffer
+    // We bypass beginInsertRows by being inside beginResetModel
+    afterAppend(); 
+    
+    endResetModel();
+}
+
 uint32_t UnifiedTraceViewModel::getJ1939Key(const ProtocolMessage& pmsg) const
 {
     uint32_t pgn = pmsg.id;
-    uint32_t sa = pmsg.metadata.value("SA").toUInt();
+    uint32_t sa = pmsg.metadata.value("Source Address").toUInt();
     return (pgn << 8) | (sa & 0xFF);
 }
 

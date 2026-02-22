@@ -1,13 +1,13 @@
 #include "UnifiedTraceItem.h"
 
 UnifiedTraceItem::UnifiedTraceItem(const CanMessage& frame, UnifiedTraceItem* parent)
-    : m_parentItem(parent), m_isProtocol(false), m_rawFrame(frame), m_globalIndex(0)
+    : m_parentItem(parent), m_isProtocol(false), m_rawFrame(frame), m_globalIndex(0), m_row(-1)
 {
     m_timestamp = static_cast<uint64_t>(frame.getFloatTimestamp() * 1000000.0);
 }
 
 UnifiedTraceItem::UnifiedTraceItem(const ProtocolMessage& msg, UnifiedTraceItem* parent)
-    : m_parentItem(parent), m_isProtocol(true), m_protocolMessage(msg)
+    : m_parentItem(parent), m_isProtocol(true), m_protocolMessage(msg), m_row(-1)
 {
     m_timestamp = msg.timestamp;
 
@@ -25,7 +25,7 @@ UnifiedTraceItem::UnifiedTraceItem(const ProtocolMessage& msg, UnifiedTraceItem*
 }
 
 UnifiedTraceItem::UnifiedTraceItem(const QString& name, const QString& value, UnifiedTraceItem* parent)
-    : m_parentItem(parent), m_isProtocol(false), m_isMetadata(true), m_metadataName(name), m_metadataValue(value)
+    : m_parentItem(parent), m_isProtocol(false), m_isMetadata(true), m_metadataName(name), m_metadataValue(value), m_row(-1)
 {
     if (m_parentItem) {
         m_timestamp = m_parentItem->timestamp();
@@ -72,7 +72,15 @@ void UnifiedTraceItem::updateProtocolMessage(const ProtocolMessage& msg)
 
 void UnifiedTraceItem::appendChild(std::shared_ptr<UnifiedTraceItem> child)
 {
+    child->setRow(m_childItems.size());
     m_childItems.append(child);
+}
+
+void UnifiedTraceItem::removeChildren(int row, int count)
+{
+    if (row >= 0 && (row + count) <= m_childItems.size()) {
+        m_childItems.remove(row, count);
+    }
 }
 
 std::shared_ptr<UnifiedTraceItem> UnifiedTraceItem::child(int row)
@@ -89,14 +97,7 @@ int UnifiedTraceItem::childCount() const
 
 int UnifiedTraceItem::row() const
 {
-    if (m_parentItem) {
-        for (int i = 0; i < m_parentItem->m_childItems.size(); ++i) {
-            if (m_parentItem->m_childItems.at(i).get() == this) {
-                return i;
-            }
-        }
-    }
-    return 0;
+    return m_row;
 }
 
 UnifiedTraceItem* UnifiedTraceItem::parentItem()

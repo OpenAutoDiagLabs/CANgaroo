@@ -25,10 +25,12 @@
 
 #include <QStringList>
 #include <QTimer>
+#include <QDateTime>
 #include <core/Backend.h>
 #include <core/MeasurementSetup.h>
 #include <core/MeasurementNetwork.h>
 #include <core/MeasurementInterface.h>
+#include <driver/CanInterface.h>
 
 CanStatusWindow::CanStatusWindow(QWidget *parent, Backend &backend) :
     ConfigurableWidget(parent),
@@ -41,12 +43,15 @@ CanStatusWindow::CanStatusWindow(QWidget *parent, Backend &backend) :
                                     << tr("Driver") << tr("Interface") << tr("State")
                                     << tr("Rx Frames") << tr("Rx Errors") << tr("Rx Overrun")
                                     << tr("Tx Frames") << tr("Tx Errors") << tr("Tx Dropped")
+                                    << tr("Load (%)") << tr("Bits")
         // << "# Warning" << "# Passive" << "# Bus Off" << " #Restarts"
     );
     // Driver width
     ui->treeWidget->setColumnWidth(0, 100);
     // Interface width
     ui->treeWidget->setColumnWidth(1, 110);
+    // Bus Load width
+    ui->treeWidget->setColumnWidth(column_bus_load, 90);
 
     connect(&backend, SIGNAL(beginMeasurement()), this, SLOT(beginMeasurement()));
     connect(&backend, SIGNAL(endMeasurement()), this, SLOT(endMeasurement()));
@@ -62,6 +67,7 @@ CanStatusWindow::~CanStatusWindow()
 void CanStatusWindow::beginMeasurement()
 {
     ui->treeWidget->clear();
+    _lastStats.clear();
     foreach (CanInterfaceId ifid, backend().getInterfaceList()) {
         CanInterface *intf = backend().getInterfaceById(ifid);
         QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeWidget);
@@ -115,6 +121,31 @@ void CanStatusWindow::update()
             item->setText(column_tx_frames, QString().number(intf->getNumTxFrames()));
             item->setText(column_tx_errors, QString().number(intf->getNumTxErrors()));
             item->setText(column_tx_dropped, QString().number(intf->getNumTxDropped()));
+            
+            // Calculate Bus Load (%)
+            qint64 now = QDateTime::currentMSecsSinceEpoch();
+            uint64_t currentBits = intf->getNumBits();
+             if (_lastStats.contains(intf)) {
+                 InterfaceStats &ls = _lastStats[intf];
+                 qint64 dt = now - ls.lastTime;
+                 if (dt >= 500) { // Update load every ~500ms for stability
+                     uint64_t dbits = currentBits - ls.lastBits;
+                     unsigned bitrate = intf->getBitrate();
+                     if (bitrate > 0) {
+                         double load = (double)dbits * 1000.0 / (double)bitrate / (double)dt * 100.0;
+                         if (load > 100.0) load = 100.0;
+                         item->setText(column_bus_load, QString("%1%").arg(load, 0, 'f', 1));
+                     } else {
+                         item->setText(column_bus_load, "---");
+                     }
+                     ls.lastBits = currentBits;
+                     ls.lastTime = now;
+                 }
+             } else {
+                 _lastStats[intf] = { currentBits, now };
+                 item->setText(column_bus_load, "0.0%");
+             }
+             item->setText(column_bits, QString::number(currentBits));
         }
     }
 

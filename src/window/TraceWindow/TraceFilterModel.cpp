@@ -7,6 +7,7 @@ TraceFilterModel::TraceFilterModel(QObject *parent)
     _filterText("")
 {
    setRecursiveFilteringEnabled(false);
+   setDynamicSortFilter(false);
 }
 
 

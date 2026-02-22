@@ -45,8 +45,10 @@ Backend::Backend()
     _logModel = new LogModel(*this);
 
     setDefaultSetup();
-    _trace = new CanTrace(*this, this, 1);
+    _trace = new CanTrace(*this, this, 50);
+    _conditionalLoggingManager = new ConditionalLoggingManager(*this, this);
 
+    connect(_trace, SIGNAL(messageEnqueued(int)), this, SLOT(onMessageEnqueued(int)));
     connect(&_setup, SIGNAL(onSetupChanged()), this, SIGNAL(onSetupChanged()));
 }
 
@@ -161,6 +163,7 @@ MeasurementSetup &Backend::getSetup()
 void Backend::setSetup(MeasurementSetup &new_setup)
 {
     _setup.cloneFrom(new_setup);
+    emit onSetupChanged();
 }
 
 double Backend::currentTimeStamp() const
@@ -306,4 +309,11 @@ uint64_t Backend::getUsecsSinceMeasurementStart() const
 void Backend::logMessage(const QDateTime dt, const log_level_t level, const QString msg)
 {
     emit onLogMessage(dt, level, msg);
+}
+
+void Backend::onMessageEnqueued(int idx)
+{
+    if (_conditionalLoggingManager->isEnabled()) {
+        _conditionalLoggingManager->processMessage(_trace->getMessage(idx));
+    }
 }

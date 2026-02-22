@@ -47,6 +47,7 @@ public:
     void clear();
     CanMessage getMessage(int idx);
     void enqueueMessage(const CanMessage &msg, bool more_to_follow=false);
+    void setMaxSize(int maxSize);
 
     void saveCanDump(QFile &file);
     void saveVectorAsc(QFile &file);
@@ -57,6 +58,8 @@ signals:
     void messageEnqueued(int idx);
     void beforeAppend(int num_messages);
     void afterAppend();
+    void beforeRemove(int count);
+    void afterRemove(int count);
     void beforeClear();
     void afterClear();
 
@@ -73,6 +76,7 @@ private:
     QVector<CanMessage> _data;
     int _dataRowsUsed;
     int _newRows;
+    int _maxSize;
     bool _isTimerRunning;
 
     QMap<const CanDbSignal*,uint64_t> _muxCache;

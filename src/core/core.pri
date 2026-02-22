@@ -12,7 +12,8 @@ SOURCES += \
     $$PWD/LogModel.cpp \
     $$PWD/ConfigurableWidget.cpp \
     $$PWD/Log.cpp \
-    $$PWD/ThemeManager.cpp
+    $$PWD/ThemeManager.cpp \
+    $$PWD/ConditionalLoggingManager.cpp
 
 HEADERS += \
     $$PWD/portable_endian.h \
@@ -29,4 +30,5 @@ HEADERS += \
     $$PWD/LogModel.h \
     $$PWD/ConfigurableWidget.h \
     $$PWD/Log.h \
-    $$PWD/ThemeManager.h
+    $$PWD/ThemeManager.h \
+    $$PWD/ConditionalLoggingManager.h

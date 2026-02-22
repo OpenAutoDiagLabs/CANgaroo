@@ -36,6 +36,7 @@
 #include <core/MeasurementNetwork.h>
 
 #include "TimeSeriesVisualization.h"
+#include <window/ConditionalLoggingDialog.h>
 #include "ScatterVisualization.h"
 #include "TextVisualization.h"
 #include "GaugeVisualization.h"
@@ -49,6 +50,7 @@ GraphWindow::GraphWindow(QWidget *parent, Backend &backend) :
     _activeVisualization(nullptr)
 {
     ui->setupUi(this);
+    ui->durationSelector->setCurrentIndex(1); // Default to 1 min
 
     setupVisualizations();
 
@@ -56,12 +58,34 @@ GraphWindow::GraphWindow(QWidget *parent, Backend &backend) :
     connect(ui->durationSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(onDurationChanged(int)));
     connect(ui->addSignalButton, &QPushButton::clicked, this, &GraphWindow::onAddSignalClicked);
     connect(ui->clearButton, &QPushButton::clicked, this, &GraphWindow::onClearClicked);
+    connect(ui->btnFullReset, &QPushButton::clicked, this, &GraphWindow::onFullResetClicked);
     connect(ui->zoomInButton, &QPushButton::clicked, this, &GraphWindow::onZoomInClicked);
     connect(ui->zoomOutButton, &QPushButton::clicked, this, &GraphWindow::onZoomOutClicked);
-    connect(ui->resetZoomButton, &QPushButton::clicked, this, &GraphWindow::onResetZoomClicked);
+    connect(ui->resetZoomButton, &QPushButton::clicked, this, &GraphWindow::on_resetZoomButton_clicked);
 
     // Register with Trace for new messages
     connect(_backend.getTrace(), SIGNAL(messageEnqueued(int)), this, SLOT(onMessageEnqueued(int)));
+
+    // Conditional Logging Panel
+    connect(ui->enableCondLogging, &QCheckBox::toggled, this, &GraphWindow::onEnableCondLoggingToggled);
+    connect(ui->configureButton, &QPushButton::clicked, this, &GraphWindow::onConfigureConditionsClicked);
+    
+    ConditionalLoggingManager *mgr = _backend.getConditionalLoggingManager();
+    connect(mgr, &ConditionalLoggingManager::conditionChanged, this, &GraphWindow::onConditionChanged);
+    
+    ui->enableCondLogging->setChecked(mgr->isEnabled());
+    onConditionChanged(mgr->isConditionMet());
+    updateConditionalSignals();
+    updateConditionalViewVisibility();
+
+    // Set default splitter proportions:
+    // graphSplitter: 75% Live, 25% Conditional
+    ui->graphSplitter->setStretchFactor(0, 75);
+    ui->graphSplitter->setStretchFactor(1, 25);
+    
+    // mainSplitter: 9 parts Graphs, 1 part Config Panel
+    ui->mainSplitter->setStretchFactor(0, 9);
+    ui->mainSplitter->setStretchFactor(1, 1);
 
     // Dynamic Column Selector for Gauges (Grouped in a container)
     _columnContainer = new QWidget(this);
@@ -103,9 +127,15 @@ void GraphWindow::setupVisualizations()
     _visualizations.append(new TextVisualization(ui->stackedWidget, _backend));
     _visualizations.append(new GaugeVisualization(ui->stackedWidget, _backend));
 
+    _conditionalVisualizations.append(new TimeSeriesVisualization(ui->conditionalStackedWidget, _backend));
+    _conditionalVisualizations.append(new ScatterVisualization(ui->conditionalStackedWidget, _backend));
+    _conditionalVisualizations.append(new TextVisualization(ui->conditionalStackedWidget, _backend));
+    _conditionalVisualizations.append(new GaugeVisualization(ui->conditionalStackedWidget, _backend));
+
     QStringList names = {"Graph (Time-series)", "Scatter Chart", "Text", "Gauge"};
     for (int i = 0; i < _visualizations.size(); ++i) {
         ui->stackedWidget->addWidget(_visualizations[i]);
+        ui->conditionalStackedWidget->addWidget(_conditionalVisualizations[i]);
         ui->viewSelector->addItem(names[i]);
 
         // Connect mouse move for visualizations that support it
@@ -137,9 +167,13 @@ void GraphWindow::onViewTypeChanged(int index)
 {
     if (index >= 0 && index < _visualizations.size()) {
         _activeVisualization = _visualizations[index];
+        _activeConditionalVisualization = _conditionalVisualizations[index];
+        
         ui->stackedWidget->setCurrentWidget(_activeVisualization);
+        ui->conditionalStackedWidget->setCurrentWidget(_activeConditionalVisualization);
 
         _activeVisualization->onActivated();
+        _activeConditionalVisualization->onActivated();
         
         // Show column selector only for Gauge view (index 3)
         bool isGauge = (index == 3);
@@ -162,9 +196,15 @@ void GraphWindow::onDurationChanged(int index)
     for (auto v : _visualizations) {
         v->setWindowDuration(seconds);
     }
+    for (auto v : _conditionalVisualizations) {
+        v->setWindowDuration(seconds);
+    }
     
     if (_activeVisualization) {
         _activeVisualization->onActivated();
+    }
+    if (_activeConditionalVisualization) {
+        _activeConditionalVisualization->onActivated();
     }
 }
 
@@ -186,10 +226,41 @@ void GraphWindow::onAddSignalClicked()
 
 void GraphWindow::onClearClicked()
 {
+    clearGraphData();
+}
+
+void GraphWindow::clearGraphData()
+{
     _sessionStartTime = -1.0;
     for (auto v : _visualizations) {
         v->clear();
     }
+    for (auto v : _conditionalVisualizations) {
+        v->clear();
+    }
+}
+
+void GraphWindow::resetGraphView()
+{
+    clearGraphData();
+
+    // Reset Conditional Logging (Signals, conditions, triggers)
+    ConditionalLoggingManager *mgr = _backend.getConditionalLoggingManager();
+    mgr->reset();
+
+    // Clear signals from ALL visualizations
+    for (auto v : _visualizations) {
+        v->clearSignals();
+    }
+    for (auto v : _conditionalVisualizations) {
+        v->clearSignals();
+    }
+
+    // Reset UI state
+    ui->enableCondLogging->setChecked(false);
+    updateConditionalViewVisibility();
+    
+    if (_activeVisualization) _activeVisualization->resetZoom();
 }
 
 void GraphWindow::onZoomInClicked()
@@ -202,29 +273,86 @@ void GraphWindow::onZoomOutClicked()
     _activeVisualization->zoomOut();
 }
 
-void GraphWindow::onResetZoomClicked()
+void GraphWindow::onFullResetClicked()
 {
-    _activeVisualization->resetZoom();
+    resetGraphView();
+}
+
+void GraphWindow::on_resetZoomButton_clicked()
+{
+    if (_activeVisualization) _activeVisualization->resetZoom();
+    if (_activeConditionalVisualization) _activeConditionalVisualization->resetZoom();
+}
+
+void GraphWindow::onConditionChanged(bool met)
+{
+    if (met) {
+        ui->triggerStatusLabel->setText(tr("CONDITION MET - LOGGING"));
+        ui->triggerStatusLabel->setStyleSheet("color: red; font-weight: bold;");
+    } else {
+        ui->triggerStatusLabel->setText(tr("Condition not met"));
+        ui->triggerStatusLabel->setStyleSheet("");
+    }
+}
+
+void GraphWindow::onEnableCondLoggingToggled(bool enabled)
+{
+    _backend.getConditionalLoggingManager()->setEnabled(enabled);
+    updateConditionalViewVisibility();
+}
+
+void GraphWindow::onConfigureConditionsClicked()
+{
+    ConditionalLoggingDialog dlg(_backend, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        updateConditionalSignals();
+        ui->enableCondLogging->setChecked(_backend.getConditionalLoggingManager()->isEnabled());
+        updateConditionalViewVisibility();
+    }
+}
+
+void GraphWindow::updateConditionalSignals()
+{
+    ConditionalLoggingManager *mgr = _backend.getConditionalLoggingManager();
+    QList<CanDbSignal*> signalList = mgr->getLogSignals();
+    for (auto v : _conditionalVisualizations) {
+        v->clearSignals();
+        for (auto sig : signalList) {
+            v->addSignal(sig);
+        }
+    }
+}
+
+void GraphWindow::updateConditionalViewVisibility()
+{
+    bool enabled = ui->enableCondLogging->isChecked();
+    ui->conditionalStackedWidget->setVisible(enabled);
 }
 
 void GraphWindow::onMessageEnqueued(int idx)
 {
     CanMessage msg = _backend.getTrace()->getMessage(idx);
-    // Basic check for valid/non-empty message:
-    if (msg.getId() == 0 && msg.getLength() == 0 && !msg.isExtended()) {
-        // This might be an empty message from return CanMessage();
-        // However, ID 0 DLC 0 is valid in CAN. 
-        // Better to check size() or similar, but for now this is safer than a null pointer.
-    }
 
     if (_sessionStartTime < 0) {
         _sessionStartTime = msg.getFloatTimestamp();
         for (auto v : _visualizations) {
             v->setGlobalStartTime(_sessionStartTime);
         }
+        for (auto v : _conditionalVisualizations) {
+            v->setGlobalStartTime(_sessionStartTime);
+        }
     }
+
+    // Live visualizations always get data
     for (auto v : _visualizations) {
         v->addMessage(msg);
+    }
+
+    // Conditional visualizations only get data if trigger is met
+    if (_backend.getConditionalLoggingManager()->isConditionMet()) {
+        for (auto v : _conditionalVisualizations) {
+            v->addMessage(msg);
+        }
     }
 }
 
@@ -407,6 +535,9 @@ void GraphWindow::onColumnSelectorChanged(int index)
 {
     if (auto gv = qobject_cast<GaugeVisualization*>(_visualizations[3])) {
         gv->setColumnCount(index + 1);
+    }
+    if (auto gcv = qobject_cast<GaugeVisualization*>(_conditionalVisualizations[3])) {
+        gcv->setColumnCount(index + 1);
     }
 }
 

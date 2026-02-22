@@ -53,11 +53,15 @@ private slots:
     void onDurationChanged(int index);
     void onZoomInClicked();
     void onZoomOutClicked();
-    void onResetZoomClicked();
+    void on_resetZoomButton_clicked();
+    void onConditionChanged(bool met);
+    void onEnableCondLoggingToggled(bool enabled);
+    void onConfigureConditionsClicked();
     void onMessageEnqueued(int idx);
     void onMouseMove(QMouseEvent *event);
     void onLegendMarkerClicked();
     void onColumnSelectorChanged(int val);
+    void onFullResetClicked();
 
 private:
     void connectLegendMarkers(VisualizationWidget* v);
@@ -68,7 +72,13 @@ private:
     Backend &_backend;
     double _sessionStartTime = -1.0;
     QList<VisualizationWidget*> _visualizations;
+    QList<VisualizationWidget*> _conditionalVisualizations;
     VisualizationWidget* _activeVisualization;
+    VisualizationWidget* _activeConditionalVisualization;
 
     void setupVisualizations();
+    void updateConditionalViewVisibility();
+    void updateConditionalSignals();
+    void clearGraphData();
+    void resetGraphView();
 };
