@@ -10,7 +10,7 @@ on:
 jobs:
   build-ubuntu:
     name: Build CANgaroo (Ubuntu / Qt6)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout repository
@@ -22,26 +22,14 @@ jobs:
         sudo apt install -y build-essential git cmake \
           qt6-base-dev qt6-base-private-dev qt6-tools-dev \
           libqt6serialport6-dev libqt6charts6-dev \
-          adwaita-qt6 libadwaitaqt6-1 \
           libnl-3-dev libnl-route-3-dev libgl1-mesa-dev fuse libfuse2 wget
 
-    - name: Verify Qt6 and Adwaita installation
-      run: |
         echo "=== Qt6 Version ==="
         qmake6 --version
         
         echo "=== Qt6 Plugin Path ==="
         QT6_PLUGIN_PATH=$(qmake6 -query QT_INSTALL_PLUGINS)
         echo "Qt6 Plugins: $QT6_PLUGIN_PATH"
-        
-        echo "=== Available Styles ==="
-        ls -la $QT6_PLUGIN_PATH/styles/ || echo "No styles directory"
-        
-        echo "=== Platform Themes ==="
-        ls -la $QT6_PLUGIN_PATH/platformthemes/ || echo "No platformthemes directory"
-        
-        echo "=== Adwaita Libraries ==="
-        ls -la /usr/lib/x86_64-linux-gnu/libadwaitaqt6*.so* || echo "No Adwaita libraries found"
 
     - name: Run qmake6 and make
       run: |
@@ -61,36 +49,6 @@ jobs:
           cp bin/cangaroo AppDir/usr/bin/
           cp cangaroo.desktop AppDir/usr/share/applications/
           cp src/assets/cangaroo.png AppDir/usr/share/icons/hicolor/256x256/apps/
-
-    - name: Copy Adwaita plugins to AppDir
-      run: |
-          QT6_PLUGIN_PATH=$(qmake6 -query QT_INSTALL_PLUGINS)
-          
-          echo "=== Copying Adwaita style plugin ==="
-          ls $QT6_PLUGIN_PATH/styles/
-          if [ -f "$QT6_PLUGIN_PATH/styles/adwaita.so" ]; then
-            cp -v "$QT6_PLUGIN_PATH/styles/adwaita.so" AppDir/usr/plugins/styles/
-            echo "Adwaita style copied"
-          else
-            echo "Warning: Adwaita style not found"
-          fi
-          
-          echo "=== Copying QGnomePlatform plugin ==="
-          if [ -f "$QT6_PLUGIN_PATH/platformthemes/libqgnomeplatform.so" ]; then
-            cp -v "$QT6_PLUGIN_PATH/platformthemes/libqgnomeplatform.so" AppDir/usr/plugins/platformthemes/
-            echo "QGnomePlatform copied"
-          else
-            echo "Warning: QGnomePlatform not found"
-          fi
-          
-          echo "=== Copying Adwaita libraries ==="
-          mkdir -p AppDir/usr/lib
-          for lib in /usr/lib/x86_64-linux-gnu/libadwaitaqt6*.so*; do
-            if [ -f "$lib" ]; then
-              cp -Pv "$lib" AppDir/usr/lib/
-              echo "Copied: $lib"
-            fi
-          done
 
     - name: Create qt.conf
       run: |
@@ -123,8 +81,14 @@ jobs:
     - name: Upload AppImage
       uses: actions/upload-artifact@v6
       with:
-          name: CANgaroo-Linux
+          name: CANgaroo-Linux-AppImage
           path: "CAN*.AppImage"
+
+    - name: Upload Binary
+      uses: actions/upload-artifact@v6
+      with:
+          name: CANgaroo-Linux-Binary
+          path: bin/cangaroo
 
   build-windows:
     name: Build CANgaroo (Windows / MinGW / Qt6)
@@ -248,7 +212,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [build-ubuntu, build-windows]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') || github.event_name == 'workflow_dispatch'
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -285,11 +249,17 @@ jobs:
           git tag ${{ steps.versioning.outputs.version }}
           git push origin ${{ steps.versioning.outputs.version }}
 
-      - name: Download Linux Artifacts
+      - name: Download Linux Binary
         uses: actions/download-artifact@v4
         with:
-          name: CANgaroo-Linux
-          path: linux-bins
+          name: CANgaroo-Linux-Binary
+          path: bin
+
+      - name: Download Linux AppImage
+        uses: actions/download-artifact@v4
+        with:
+          name: CANgaroo-Linux-AppImage
+          path: appimage
 
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
@@ -299,28 +269,64 @@ jobs:
 
       - name: Package Release
         run: |
+          VERSION=${{ steps.versioning.outputs.version }}
           mkdir -p release-pkg
           
-          # Linux packaging (AppImage is already one file, just move it)
-          cp linux-bins/*.AppImage release-pkg/CANgaroo-Linux-x86_64.AppImage
+          # Linux packaging
+          LINUX_DIR="cangaroo-${VERSION}-linux-x86_64"
+          mkdir -p "$LINUX_DIR"
+          
+          cp bin/cangaroo "$LINUX_DIR/"
+          cp appimage/CAN*.AppImage "$LINUX_DIR/CANgaroo-x86_64.AppImage"
+          cp README.md "$LINUX_DIR/"
+          cp LICENSE "$LINUX_DIR/"
+          cp CONTRIBUTING.md "$LINUX_DIR/"
+          cp setup_release.sh "$LINUX_DIR/"
+          
+          tar -czf "release-pkg/${LINUX_DIR}.tar.gz" "$LINUX_DIR"
           
           # Windows packaging (Zip the dist folder)
+          WINDOWS_ZIP="cangaroo-${VERSION}-windows-x64.zip"
           cd windows-bins
-          zip -r ../release-pkg/CANgaroo-Windows-x64.zip .
+          zip -r "../release-pkg/${WINDOWS_ZIP}" .
           cd ..
+          
+          # Generate Checksums
+          cd release-pkg
+          for file in *; do
+            sha256sum "$file" > "${file}.sha256"
+          done
+          cd ..
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$latest_tag" ]; then
+            log=$(git log --oneline -n 20)
+          else
+            log=$(git log ${latest_tag}..HEAD --oneline)
+          fi
+          
+          # Set output using multi-line delimiter
+          {
+            echo "body<<EOF"
+            echo "Automated release for version ${{ steps.versioning.outputs.version }}"
+            echo ""
+            echo "### Changes since last release:"
+            echo "$log"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.versioning.outputs.version }}
           name: Release ${{ steps.versioning.outputs.version }}
-          body: |
-            Automated release for version ${{ steps.versioning.outputs.version }}
-            
-            Changes since last release:
-            $(git log $(git describe --tags --abbrev=0 --always)..HEAD --oneline)
+          body: ${{ steps.changelog.outputs.body }}
           files: |
-            release-pkg/CANgaroo-Linux-x86_64.AppImage
-            release-pkg/CANgaroo-Windows-x64.zip
-          draft: false
+            release-pkg/*.tar.gz
+            release-pkg/*.zip
+            release-pkg/*.sha256
+          draft: true
           prerelease: false

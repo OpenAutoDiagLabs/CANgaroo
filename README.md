@@ -3,6 +3,7 @@
 
 [![Try Cangaroo Now](https://img.shields.io/badge/Try-Cangaroo-blue?style=for-the-badge)](https://github.com/OpenAutoDiagLabs/cangaroo/releases/latest)
 
+[![Build CANgaroo](https://github.com/OpenAutoDiagLabs/CANgaroo/actions/workflows/cmake.yml/badge.svg)](https://github.com/OpenAutoDiagLabs/CANgaroo/actions/workflows/cmake.yml)
 ![GitHub stars](https://img.shields.io/github/stars/OpenAutoDiagLabs/cangaroo?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/OpenAutoDiagLabs/cangaroo?style=social)
 ![GitHub issues](https://img.shields.io/github/issues/OpenAutoDiagLabs/cangaroo)
