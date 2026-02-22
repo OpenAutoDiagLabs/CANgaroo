@@ -212,7 +212,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [build-ubuntu, build-windows]
-    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || github.ref_name == 'master'
     runs-on: ubuntu-latest
     permissions:
       contents: write
