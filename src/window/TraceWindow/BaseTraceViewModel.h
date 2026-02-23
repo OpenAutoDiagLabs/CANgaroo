@@ -55,6 +55,8 @@ public:
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const;
     virtual QVariant data(const QModelIndex &index, int role) const;
 
+    virtual CanMessage getMessage(const QModelIndex &index) const = 0;
+
     Backend *backend() const;
     CanTrace *trace() const;
 

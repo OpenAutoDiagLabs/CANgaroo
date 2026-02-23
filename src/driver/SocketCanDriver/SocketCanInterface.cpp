@@ -22,6 +22,8 @@
 #include "SocketCanInterface.h"
 
 #include <core/Backend.h>
+#include <core/MeasurementSetup.h>
+#include <core/MeasurementNetwork.h>
 #include <core/MeasurementInterface.h>
 #include <core/CanMessage.h>
 
@@ -62,6 +64,7 @@ SocketCanInterface::SocketCanInterface(SocketCanDriver *driver, int index, QStri
 
     _status.tx_dropped = 0;
 
+    memset(&_config, 0, sizeof(_config));
     memset(&_offset_stats, 0, sizeof(_offset_stats));
 
     _ts_mode = ts_mode_SIOCGSTAMP;
@@ -318,11 +321,27 @@ bool SocketCanInterface::supportsTripleSampling()
 }
 
 unsigned SocketCanInterface::getBitrate() {
+    unsigned br = 0;
     if (readConfig()) {
-        return _config.bit_timing.bitrate;
-    } else {
-        return 0;
+        br = _config.bit_timing.bitrate;
     }
+
+    if (br == 0) {
+        // Fallback to setup bitrate
+        foreach (MeasurementNetwork *network, Backend::instance().getSetup().getNetworks()) {
+            foreach (MeasurementInterface *mi, network->interfaces()) {
+                if (mi->canInterface() == getId()) {
+                    unsigned fallbackBr = mi->bitrate();
+                    log_info(QString("SocketCanInterface %1: getBitrate() fallback to %2 (ID match %3)").arg(_name).arg(fallbackBr).arg(getId()));
+                    return fallbackBr;
+                }
+            }
+        }
+    }
+
+    if (br == 0) br = 500000; // Final safety fallback
+
+    return br;
 }
 
 uint32_t SocketCanInterface::getCapabilities()
@@ -351,6 +370,7 @@ bool SocketCanInterface::updateStatistics()
 void SocketCanInterface::resetStatistics()
 {
     _offset_stats = _status;
+    CanInterface::resetStatistics();
 }
 
 uint32_t SocketCanInterface::getState()
@@ -514,6 +534,8 @@ void SocketCanInterface::sendMessage(const CanMessage &msg) {
             log_error(QString("SocketCanInterface: Error writing frame to %1: %2").arg(_name, strerror(errno)));
         }
     }
+    // Track sent bits
+    addFrameBits(msg);
 }
 
 bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms) {
@@ -576,6 +598,7 @@ bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
         }
 
         msglist.append(msg);
+        addFrameBits(msg); // Track received bits
         return true;
     } 
     

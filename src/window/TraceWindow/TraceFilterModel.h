@@ -9,7 +9,6 @@ class TraceFilterModel : public QSortFilterProxyModel
 public:
     explicit TraceFilterModel(QObject *parent = nullptr);
 
-
 public slots:
     void setFilterText(QString filtertext);
 

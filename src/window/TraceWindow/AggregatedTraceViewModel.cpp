@@ -21,6 +21,7 @@
 
 #include "AggregatedTraceViewModel.h"
 #include <QColor>
+#include <QSet>
 #include <core/ThemeManager.h>
 
 #include <core/Backend.h>
@@ -76,12 +77,18 @@ void AggregatedTraceViewModel::onUpdateModel()
     }
 
     if (!_pendingMessageUpdates.isEmpty()) {
+        QSet<int> updatedRows;
         foreach (CanMessage msg, _pendingMessageUpdates) {
             AggregatedTraceViewItem *item = _map.value(makeUniqueKey(msg));
             if (item) {
                 updateItem(msg);
-
-                int r = item->row();
+                updatedRows.insert(item->row());
+            }
+        }
+        
+        foreach (int r, updatedRows) {
+            AggregatedTraceViewItem *item = _rootItem->child(r);
+            if (item) {
                 QModelIndex msgIdx = createIndex(r, 0, item);
                 emit dataChanged(msgIdx, msgIdx.sibling(r, column_count - 1));
 
@@ -100,6 +107,15 @@ void AggregatedTraceViewModel::onUpdateModel()
 void AggregatedTraceViewModel::onSetupChanged()
 {
     beginResetModel();
+    for (AggregatedTraceViewItem *item : _map.values()) {
+        item->removeChildren();
+        CanDbMessage *dbmsg = backend()->findDbMessage(item->_lastmsg);
+        if (dbmsg) {
+            for (int i=0; i<dbmsg->getSignals().length(); i++) {
+                item->appendChild(new AggregatedTraceViewItem(item));
+            }
+        }
+    }
     endResetModel();
 }
 
@@ -192,6 +208,14 @@ int AggregatedTraceViewModel::rowCount(const QModelIndex &parent) const
         parentItem = _rootItem;
     }
     return parentItem->childCount();
+}
+
+CanMessage AggregatedTraceViewModel::getMessage(const QModelIndex &index) const
+{
+    if (!index.isValid()) return CanMessage();
+    AggregatedTraceViewItem *item = static_cast<AggregatedTraceViewItem*>(index.internalPointer());
+    if (item == _rootItem) return CanMessage();
+    return (item->parent() == _rootItem) ? item->_lastmsg : item->parent()->_lastmsg;
 }
 
 QVariant AggregatedTraceViewModel::data_DisplayRole(const QModelIndex &index, int role) const

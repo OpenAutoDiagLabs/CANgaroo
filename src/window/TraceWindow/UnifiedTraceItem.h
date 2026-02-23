@@ -15,9 +15,11 @@ public:
     void updateProtocolMessage(const ProtocolMessage& msg);
 
     void appendChild(std::shared_ptr<UnifiedTraceItem> child);
+    void removeChildren(int row, int count);
     std::shared_ptr<UnifiedTraceItem> child(int row);
     int childCount() const;
     int row() const;
+    void setRow(int row) { m_row = row; }
     UnifiedTraceItem* parentItem();
 
     bool isProtocol() const { return m_isProtocol; }
@@ -45,4 +47,5 @@ private:
 
     uint32_t m_globalIndex = 0;
     uint64_t m_timestamp = 0;
+    int m_row = -1;
 };

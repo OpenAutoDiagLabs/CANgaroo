@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1000</width>
+    <height>700</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,122 +15,192 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-     <layout class="QHBoxLayout" name="toolbarLayout">
-      <item>
-       <widget class="QLabel" name="label">
+    <layout class="QHBoxLayout" name="toolbarLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>View Type:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="viewSelector"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Duration:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="durationSelector">
+       <item>
         <property name="text">
-         <string>View Type:</string>
+         <string>All</string>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="viewSelector"/>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_2">
+       </item>
+       <item>
         <property name="text">
-         <string>Duration:</string>
+         <string>1 min</string>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="durationSelector">
-        <item>
-         <property name="text">
-          <string>All</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>1 min</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>5 min</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>10 min</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>15 min</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>30 min</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="zoomInButton">
+       </item>
+       <item>
         <property name="text">
-         <string>🔍+</string>
+         <string>5 min</string>
         </property>
-        <property name="toolTip">
-         <string>Zoom In</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="zoomOutButton">
+       </item>
+       <item>
         <property name="text">
-         <string>🔍-</string>
+         <string>10 min</string>
         </property>
-        <property name="toolTip">
-         <string>Zoom Out</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="resetZoomButton">
+       </item>
+       <item>
         <property name="text">
-         <string>↺</string>
+         <string>15 min</string>
         </property>
-        <property name="toolTip">
-         <string>Reset Zoom</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="addSignalButton">
+       </item>
+       <item>
         <property name="text">
-         <string>Add Signal...</string>
+         <string>30 min</string>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="clearButton">
-        <property name="text">
-         <string>Clear</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="zoomInButton">
+       <property name="text">
+        <string>🔍+</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="zoomOutButton">
+       <property name="text">
+        <string>🔍-</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="resetZoomButton">
+       <property name="text">
+        <string>↺</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="addSignalButton">
+       <property name="text">
+        <string>Add Signal...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnFullReset">
+       <property name="text">
+        <string>Reset</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="clearButton">
+       <property name="text">
+        <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
-    <widget class="QStackedWidget" name="stackedWidget">
-     <property name="currentIndex">
-      <number>-1</number>
+    <widget class="QSplitter" name="mainSplitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
+     <widget class="QSplitter" name="graphSplitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <widget class="QStackedWidget" name="stackedWidget">
+       <property name="currentIndex">
+        <number>-1</number>
+       </property>
+      </widget>
+      <widget class="QStackedWidget" name="conditionalStackedWidget">
+       <property name="currentIndex">
+        <number>-1</number>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="configPanel" native="true">
+      <property name="minimumSize">
+       <size>
+        <width>180</width>
+        <height>0</height>
+       </size>
+      </property>
+      <layout class="QVBoxLayout" name="configLayout">
+       <item>
+        <widget class="QLabel" name="configLabel">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Conditional Logging</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="enableCondLogging">
+         <property name="text">
+          <string>Enable Trigger</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="configureButton">
+         <property name="text">
+          <string>Configure Conditions...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Status:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="triggerStatusLabel">
+         <property name="font">
+          <font>
+           <italic>true</italic>
+          </font>
+         </property>
+         <property name="text">
+          <string>Condition not met</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>

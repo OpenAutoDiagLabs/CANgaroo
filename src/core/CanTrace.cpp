@@ -36,7 +36,8 @@ CanTrace::CanTrace(Backend &backend, QObject *parent, int flushInterval)
     _isTimerRunning(false),
     _mutex(),
     _timerMutex(),
-    _flushTimer(this)
+    _flushTimer(this),
+    _maxSize(50000)
 {
     clear();
     _flushTimer.setSingleShot(true);
@@ -117,7 +118,24 @@ void CanTrace::flushQueue()
         _dataRowsUsed += _newRows;
         _newRows = 0;
         emit afterAppend();
+
+        // Hard limit check - prune if we exceed maxSize
+        if (_dataRowsUsed > _maxSize) {
+            int toRemove = _maxSize / 10; // Remove 10% when limit hit
+            if (toRemove > 0) {
+                emit beforeRemove(toRemove);
+                _data.remove(0, toRemove);
+                _dataRowsUsed -= toRemove;
+                emit afterRemove(toRemove);
+            }
+        }
     }
+}
+
+void CanTrace::setMaxSize(int maxSize)
+{
+    QMutexLocker locker(&_mutex);
+    _maxSize = maxSize;
 }
 
 void CanTrace::startTimer()

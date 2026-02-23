@@ -141,6 +141,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->horizontalLayoutControls->addWidget(_btnThemeToggle);
     connect(_btnThemeToggle, &QPushButton::clicked, this, &MainWindow::onThemeToggleClicked);
 
+    // Open Standalone Graph Button
+    QPushButton *btnOpenGraph = new QPushButton(tr("Graph"), this);
+    btnOpenGraph->setIcon(QIcon(":/assets/graph.svg"));
+    btnOpenGraph->setToolTip(tr("Open Standalone Graph Window (Ctrl+Shift+B)"));
+    btnOpenGraph->setCursor(Qt::PointingHandCursor);
+    ui->horizontalLayoutControls->insertWidget(3, btnOpenGraph); // Insert after Setup Interface button
+    connect(btnOpenGraph, &QPushButton::clicked, this, &MainWindow::createStandaloneGraphWindow);
+
     // Default to Light
     setTheme("light");
 }

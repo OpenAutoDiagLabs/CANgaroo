@@ -7,6 +7,7 @@
         <file>translations/i18n_en_us.qm</file>
         <file>translations/i18n_zh_cn.qm</file>
         <file>assets/auto-scroll.svg</file>
+        <file>assets/graph.svg</file>
         <file>assets/light_theme.qss</file>
         <file>assets/dark_theme.qss</file>
     </qresource>
