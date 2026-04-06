@@ -36,9 +36,10 @@ public:
     virtual ~TextVisualization();
 
     virtual void addMessage(const CanMessage &msg) override;
+    virtual void addDecodedData(const QMap<CanDbSignal*, DecodedSignalData>& newPoints) override;
     virtual void clear() override;
     virtual void onActivated() override;
-    virtual void addSignal(CanDbSignal *signal) override;
+    virtual void addSignal(CanDbSignal *signal, const CanInterfaceIdList &interfaces = {}) override;
     virtual void clearSignals() override;
     virtual void setSignalColor(CanDbSignal *signal, const QColor &color) override;
     virtual void applyTheme(ThemeManager::Theme theme) override;

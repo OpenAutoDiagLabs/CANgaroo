@@ -87,6 +87,10 @@ void SignalSelectorDialog::populateTree()
         QTreeWidgetItem *netItem = new QTreeWidgetItem(networksItem);
         netItem->setText(0, network->name());
         
+        // Store interfaces for this network
+        CanInterfaceIdList interfaces = network->getReferencedCanInterfaces();
+        QVariant interfaceData = QVariant::fromValue(interfaces);
+
         for (pCanDb db : network->_canDbs) {
             for (CanDbMessage *msg : db->getMessageList().values()) {
                 QTreeWidgetItem *msgItem = new QTreeWidgetItem(netItem);
@@ -107,6 +111,7 @@ void SignalSelectorDialog::populateTree()
                     sigItem->setText(2, sig->comment());
                     sigItem->setCheckState(0, Qt::Unchecked);
                     sigItem->setData(0, Qt::UserRole, QVariant::fromValue((void*)sig));
+                    sigItem->setData(0, Qt::UserRole + 1, interfaceData);
 
                     // Add colored legend icon (deterministic color based on name)
                     QPixmap pix(12, 12);
@@ -120,15 +125,18 @@ void SignalSelectorDialog::populateTree()
     }
 }
 
-QList<CanDbSignal*> SignalSelectorDialog::getSelectedSignals() const
+QList<SignalSelectorDialog::SelectedSignal> SignalSelectorDialog::getSelectedSignalsWithContext() const
 {
-    QList<CanDbSignal*> selected;
+    QList<SelectedSignal> selected;
     QTreeWidgetItemIterator it(_tree);
     while (*it) {
         if ((*it)->checkState(0) == Qt::Checked) {
             void* sigPtr = (*it)->data(0, Qt::UserRole).value<void*>();
             if (sigPtr) {
-                selected.append((CanDbSignal*)sigPtr);
+                SelectedSignal s;
+                s.signal = (CanDbSignal*)sigPtr;
+                s.interfaces = (*it)->data(0, Qt::UserRole + 1).value<CanInterfaceIdList>();
+                selected.append(s);
             }
         }
         ++it;

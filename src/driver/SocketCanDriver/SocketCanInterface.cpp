@@ -332,7 +332,7 @@ unsigned SocketCanInterface::getBitrate() {
             foreach (MeasurementInterface *mi, network->interfaces()) {
                 if (mi->canInterface() == getId()) {
                     unsigned fallbackBr = mi->bitrate();
-                    log_info(QString("SocketCanInterface %1: getBitrate() fallback to %2 (ID match %3)").arg(_name).arg(fallbackBr).arg(getId()));
+                    // log_info(QString("SocketCanInterface %1: getBitrate() fallback to %2 (ID match %3)").arg(_name).arg(fallbackBr).arg(getId()));
                     return fallbackBr;
                 }
             }
@@ -451,11 +451,10 @@ void SocketCanInterface::open() {
         return;
     }
 
-    if (supportsCanFD()) {
-        int enable = 1;
-        if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable, sizeof(enable)) != 0) {
-            log_error(QString("SocketCanInterface: Error while enabling CAN FD support for %1: %2").arg(_name, strerror(errno)));
-        }
+    int enable = 1;
+    if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable, sizeof(enable)) != 0) {
+        // Just info, not error, since older kernels might not support it
+        // and we can still communicate using classic CAN frames.
     }
 
     _isOpen = true;

@@ -119,13 +119,56 @@ GaugeVisualization::~GaugeVisualization()
 {
 }
 
+void GaugeVisualization::addDecodedData(const QMap<CanDbSignal*, DecodedSignalData>& newPoints)
+{
+    for (auto it = newPoints.begin(); it != newPoints.end(); ++it) {
+        CanDbSignal* signal = it.key();
+        if (!_signals.contains(signal)) continue;
+
+        const DecodedSignalData &data = it.value();
+        if (data.timestamps.isEmpty()) continue;
+        
+        _signalBuffers[signal].timestamps.append(data.timestamps);
+        _signalBuffers[signal].values.append(data.values);
+
+        if (_gaugeMap.contains(signal)) {
+            _gaugeMap[signal]->setValue(data.values.last());
+        }
+
+        if (_signalBuffers[signal].values.size() > 100) {
+            int removeCount = _signalBuffers[signal].values.size() - 80;
+            _signalBuffers[signal].timestamps.remove(0, removeCount);
+            _signalBuffers[signal].values.remove(0, removeCount);
+        }
+    }
+}
+
 void GaugeVisualization::addMessage(const CanMessage &msg)
 {
+    CanInterfaceId msgIfId = msg.getInterfaceId();
+
     for (CanDbSignal *signal : _signals) {
         if (signal->isPresentInMessage(msg)) {
+            // Network Context Filtering
+            if (_signalInterfaces.contains(signal)) {
+                if (!_signalInterfaces[signal].contains(msgIfId)) {
+                    continue;
+                }
+            }
+
             double value = signal->extractPhysicalFromMessage(msg);
+            
+            // Populate isolated buffer
+            _signalBuffers[signal].timestamps.append(msg.getFloatTimestamp());
+            _signalBuffers[signal].values.append(value);
+
             if (_gaugeMap.contains(signal)) {
                 _gaugeMap[signal]->setValue(value);
+            }
+            
+            if (_signalBuffers[signal].values.size() > 100) {
+                _signalBuffers[signal].timestamps.remove(0);
+                _signalBuffers[signal].values.remove(0);
             }
         }
     }
@@ -136,6 +179,7 @@ void GaugeVisualization::clear()
     for (auto gauge : _gaugeMap.values()) {
         gauge->setValue(0);
     }
+    _signalBuffers.clear();
 }
 
 void GaugeVisualization::onActivated()
@@ -155,11 +199,11 @@ void GaugeVisualization::clearSignals()
     _signals.clear();
 }
 
-void GaugeVisualization::addSignal(CanDbSignal *signal)
+void GaugeVisualization::addSignal(CanDbSignal *signal, const CanInterfaceIdList &interfaces)
 {
     if (_gaugeMap.contains(signal)) return;
 
-    VisualizationWidget::addSignal(signal);
+    VisualizationWidget::addSignal(signal, interfaces);
 
     GaugeWidget *gauge = new GaugeWidget(_container);
     gauge->setSignalName(signal->name());

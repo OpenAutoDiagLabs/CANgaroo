@@ -21,6 +21,9 @@ UnifiedTraceViewModel::UnifiedTraceViewModel(Backend &backend, Category category
     connect(backend.getTrace(), SIGNAL(beforeClear()), this, SLOT(beforeClear()));
     connect(backend.getTrace(), SIGNAL(afterClear()), this, SLOT(afterClear()));
     connect(&backend, SIGNAL(onSetupChanged()), this, SLOT(onSetupChanged()));
+    
+    connect(&backend, SIGNAL(beginMeasurement()), this, SLOT(onResumeMeasurement()));
+    connect(&backend, SIGNAL(endMeasurement()), this, SLOT(onPauseMeasurement()));
 }
 
 UnifiedTraceViewModel::~UnifiedTraceViewModel()
@@ -128,6 +131,8 @@ void UnifiedTraceViewModel::beforeAppend(int num_messages)
 
 void UnifiedTraceViewModel::afterAppend()
 {
+    if (!m_isActive) return;
+    
     CanTrace *trace = backend()->getTrace();
     int size = trace->size();
     QSet<int> updatedRows;
@@ -276,6 +281,17 @@ void UnifiedTraceViewModel::onSetupChanged()
     afterAppend(); 
     
     endResetModel();
+}
+
+void UnifiedTraceViewModel::onResumeMeasurement()
+{
+    m_isActive = true;
+    afterAppend();
+}
+
+void UnifiedTraceViewModel::onPauseMeasurement()
+{
+    m_isActive = false;
 }
 
 uint32_t UnifiedTraceViewModel::getJ1939Key(const ProtocolMessage& pmsg) const

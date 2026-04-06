@@ -86,7 +86,7 @@ bool MeasurementNetwork::reloadCanDbs(Backend *backend, QStringList *errors)
         QString errorMsg;
         pCanDb newDb = backend->loadDbc(db->getPath(), &errorMsg);
         if (newDb) {
-            db = newDb;
+            db->updateFrom(newDb.data());
         } else {
             allSuccess = false;
             if (errors) {

@@ -281,9 +281,7 @@ void ConditionalLoggingDialog::onAccept()
 {
     ConditionalLoggingManager *mgr = _backend.getConditionalLoggingManager();
 
-    QSet<int> filterBusIds;
-    QSet<CanDbMessage*> filterMessages;
-    QSet<CanDbSignal*> filterSignals;
+    QMap<CanDbSignal*, CanInterfaceIdList> signalInterfaces;
     QList<CanDbSignal*> logSignals;
 
     QTreeWidgetItemIterator it(_signalsTree);
@@ -293,17 +291,21 @@ void ConditionalLoggingDialog::onAccept()
             QString type = item->data(0, Qt::UserRole + 1).toString();
             void *data = item->data(0, Qt::UserRole).value<void*>();
             
-            if (type == "network") {
-                MeasurementNetwork *net = (MeasurementNetwork*)data;
-                foreach (MeasurementInterface *mi, net->interfaces()) {
-                    filterBusIds.insert(mi->canInterface());
-                }
-            } else if (type == "message") {
-                filterMessages.insert((CanDbMessage*)data);
-            } else if (type == "signal") {
+            if (type == "signal") {
                 CanDbSignal *sig = (CanDbSignal*)data;
-                filterSignals.insert(sig);
                 logSignals.append(sig);
+
+                // Find the parent network to get Interface IDs
+                QTreeWidgetItem *parent = item->parent(); // message
+                if (parent) parent = parent->parent(); // network
+                if (parent && parent->data(0, Qt::UserRole + 1).toString() == "network") {
+                    MeasurementNetwork *net = (MeasurementNetwork*)parent->data(0, Qt::UserRole).value<void*>();
+                    CanInterfaceIdList ifIds;
+                    foreach (MeasurementInterface *mi, net->interfaces()) {
+                        ifIds.append(mi->canInterface());
+                    }
+                    signalInterfaces[sig] = ifIds;
+                }
             }
         }
         ++it;
@@ -332,6 +334,7 @@ void ConditionalLoggingDialog::onAccept()
 
     mgr->setConditions(conditions, _andLogicCheckBox->isChecked());
     mgr->setLogSignals(logSignals);
+    mgr->setSignalInterfaces(signalInterfaces);
     mgr->setLogFilePath(_logFileEdit->text());
     mgr->setEnabled(_enabledCheckBox->isChecked());
 
