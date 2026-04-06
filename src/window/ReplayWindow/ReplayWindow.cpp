@@ -53,7 +53,7 @@ ReplayWindow::ReplayWindow(QWidget *parent, Backend &backend) :
     _replayer->setTraceBuffer(_backend.getTrace());
     
     // Connect to backend signals so the interface list updates automatically
-    connect(&backend, SIGNAL(interfacesSynchronized()), this, SLOT(refreshInterfaces()));
+    connect(&backend, &Backend::onSetupChanged, this, &ReplayWindow::refreshInterfaces);
     connect(&backend, SIGNAL(beginMeasurement()), this, SLOT(refreshInterfaces()));
     connect(&backend, SIGNAL(endMeasurement()), this, SLOT(refreshInterfaces()));
     connect(&backend, SIGNAL(endMeasurement()), this, SLOT(on_btnPause_clicked()));

@@ -23,6 +23,7 @@
 
 #include <QMainWindow>
 #include <QList>
+#include <QShowEvent>
 #include <core/Backend.h>
 #include <QPushButton>
 
@@ -34,6 +35,7 @@ class QMdiSubWindow;
 class QWidget;
 class QSignalMapper;
 class QDomElement;
+class QActionGroup;
 QT_END_NAMESPACE
 
 namespace Ui {
@@ -55,6 +57,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
+    void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
 
 public slots:
     QMainWindow *createTraceWindow(QString title=QString());
@@ -85,11 +88,16 @@ private slots:
     void on_actionCan_Status_View_triggered();
     void on_actionGenerator_View_triggered();
     void on_actionReport_Issue_triggered();
-    void onThemeToggleClicked();
+    void showThemeToolbarMenu();
 
 private:
-    QString _currentTheme;
-    QPushButton *_btnThemeToggle;
+    QString _currentTheme = QStringLiteral("auto");
+    QPushButton *_btnTheme;
+    bool _themeResolvedAfterShow = false;
+    QActionGroup *_themeActionGroup;
+    QAction *_actionThemeAuto;
+    QAction *_actionThemeLight;
+    QAction *_actionThemeDark;
 
 private:
     Ui::MainWindow *ui;

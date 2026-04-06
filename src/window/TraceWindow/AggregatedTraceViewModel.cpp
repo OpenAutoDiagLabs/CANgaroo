@@ -241,7 +241,7 @@ QVariant AggregatedTraceViewModel::data_TextColorRole(const QModelIndex &index, 
     if (!item) { return QVariant(); }
 
     if (item->parent() == _rootItem) { // CanMessage row
-        return ThemeManager::instance().colors().text;
+        return QVariant();
     } else { // CanSignal Row
         return data_TextColorRole_Signal(index, role, item->parent()->_lastmsg);
     }

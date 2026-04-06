@@ -46,6 +46,12 @@ void ThemeManager::applyTheme(Theme theme)
     emit themeChanged(theme);
 }
 
+void ThemeManager::setCustomTraceTextColor(const QColor &color)
+{
+    _customTraceTextColor = color;
+    emit traceTextColorChanged(color);
+}
+
 void ThemeManager::updateColors(Theme theme)
 {
     if (theme == Light) {

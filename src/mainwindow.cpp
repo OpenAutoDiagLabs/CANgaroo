@@ -30,12 +30,15 @@
 #include <QMdiArea>
 #include <QMdiSubWindow>
 #include <QSignalMapper>
+#include <QActionGroup>
 #include <QDomDocument>
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QSettings>
 #include <QPushButton>
+#include <QPalette>
 #include <QTimer>
+#include <QColorDialog>
 #include <QLabel>
 #include <QDockWidget>
 #include <QStatusBar>
@@ -63,6 +66,30 @@
 #include <driver/CandleApiDriver/CandleApiDriver.h>
 #endif
 
+namespace {
+
+bool effectiveThemePreferenceIsDark(const QString &preference)
+{
+    if (preference == QLatin1String("dark")) {
+        return true;
+    }
+    if (preference == QLatin1String("light")) {
+        return false;
+    }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    switch (qApp->styleHints()->colorScheme()) {
+    case Qt::ColorScheme::Dark:
+        return true;
+    case Qt::ColorScheme::Light:
+        return false;
+    default:
+        break;
+    }
+#endif
+    return qApp->palette().color(QPalette::Window).lightness() < 128;
+}
+
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -127,23 +154,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     _showSetupDialog_first = false;
 
-    // Theme Toggle Button in top-left (actually after spacer, so top-right)
-    _btnThemeToggle = new QPushButton(this);
-    _btnThemeToggle->setFixedSize(32, 32);
-    _btnThemeToggle->setCursor(Qt::PointingHandCursor);
-    _btnThemeToggle->setToolTip(tr("Toggle Dark/Light Mode"));
-    _btnThemeToggle->setFlat(true);
-    _btnThemeToggle->setStyleSheet(
-        "QPushButton {"
-        "  font-size: 18px;"
-        "  border-radius: 16px;"
-        "  background: transparent;"
-        "}"
-        "QPushButton:hover {"
-        "  background: rgba(0, 0, 0, 0.1);"
-        "}"
-    );
-    
     // Open Standalone Graph Button
     QPushButton *btnOpenGraph = new QPushButton(tr("Graph"), this);
     btnOpenGraph->setIcon(QIcon(":/assets/graph.svg"));
@@ -151,16 +161,68 @@ MainWindow::MainWindow(QWidget *parent) :
     btnOpenGraph->setCursor(Qt::PointingHandCursor);
     ui->horizontalLayoutControls->insertWidget(3, btnOpenGraph); // Insert after Setup Interface button
 
-    // Insert Theme Toggle at the right corner (after the spacer)
-    ui->horizontalLayoutControls->addWidget(_btnThemeToggle);
-    connect(_btnThemeToggle, &QPushButton::clicked, this, &MainWindow::onThemeToggleClicked);
+    _actionThemeAuto = new QAction(tr("System Default"), this);
+    _actionThemeLight = new QAction(tr("Light"), this);
+    _actionThemeDark = new QAction(tr("Dark"), this);
 
-    // Default to OS Theme
-    bool isSystemDark = false;
+    _actionThemeAuto->setCheckable(true);
+    _actionThemeLight->setCheckable(true);
+    _actionThemeDark->setCheckable(true);
+
+    _themeActionGroup = new QActionGroup(this);
+    _themeActionGroup->addAction(_actionThemeAuto);
+    _themeActionGroup->addAction(_actionThemeLight);
+    _themeActionGroup->addAction(_actionThemeDark);
+    _actionThemeAuto->setChecked(true);
+
+    QMenu *menuTheme = new QMenu(tr("&Theme"), this);
+    menuTheme->addAction(_actionThemeAuto);
+    menuTheme->addAction(_actionThemeLight);
+    menuTheme->addAction(_actionThemeDark);
+
+    ui->menuWindow->addSeparator();
+    ui->menuWindow->addMenu(menuTheme);
+
+    QAction *actionThemeSetColor = new QAction(tr("Set Trace Text Color..."), this);
+    QAction *actionThemeResetColor = new QAction(tr("Reset Trace Text Color"), this);
+    menuTheme->addSeparator();
+    menuTheme->addAction(actionThemeSetColor);
+    menuTheme->addAction(actionThemeResetColor);
+
+    connect(_actionThemeAuto, &QAction::triggered, this, [this]() { this->setTheme(QStringLiteral("auto")); });
+    connect(_actionThemeLight, &QAction::triggered, this, [this]() { this->setTheme(QStringLiteral("light")); });
+    connect(_actionThemeDark, &QAction::triggered, this, [this]() { this->setTheme(QStringLiteral("dark")); });
+
+    connect(actionThemeSetColor, &QAction::triggered, this, [this]() {
+        QColor initColor = ThemeManager::instance().customTraceTextColor();
+        if (!initColor.isValid()) initColor = ThemeManager::instance().colors().text;
+        QColor target = QColorDialog::getColor(initColor, this, tr("Select Trace Text Color"));
+        if (target.isValid()) {
+            ThemeManager::instance().setCustomTraceTextColor(target);
+            setWorkspaceModified(true);
+        }
+    });
+
+    connect(actionThemeResetColor, &QAction::triggered, this, [this]() {
+        ThemeManager::instance().setCustomTraceTextColor(QColor());
+        setWorkspaceModified(true);
+    });
+
+    _btnTheme = new QPushButton(this);
+    _btnTheme->setFixedSize(32, 32);
+    _btnTheme->setCursor(Qt::PointingHandCursor);
+    _btnTheme->setFlat(true);
+    connect(_btnTheme, &QPushButton::clicked, this, &MainWindow::showThemeToolbarMenu);
+    ui->horizontalLayoutControls->addWidget(_btnTheme);
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    isSystemDark = qApp->styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+    connect(qApp->styleHints(), &QStyleHints::colorSchemeChanged, this, [this](Qt::ColorScheme) {
+        if (_currentTheme == QLatin1String("auto")) {
+            setTheme(QStringLiteral("auto"));
+        }
+    });
 #endif
-    setTheme(isSystemDark ? "dark" : "light");
+
     connect(btnOpenGraph, &QPushButton::clicked, this, &MainWindow::createStandaloneGraphWindow);
 }
 
@@ -204,6 +266,24 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings.setValue("geometry", saveGeometry());
     settings.setValue("windowState", saveState());
     QMainWindow::closeEvent(event);*/
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+    if (!_themeResolvedAfterShow) {
+        _themeResolvedAfterShow = true;
+        setTheme(_currentTheme);
+    }
+}
+
+void MainWindow::showThemeToolbarMenu()
+{
+    QMenu menu(this);
+    menu.addAction(_actionThemeAuto);
+    menu.addAction(_actionThemeLight);
+    menu.addAction(_actionThemeDark);
+    menu.exec(_btnTheme->mapToGlobal(QPoint(0, _btnTheme->height())));
 }
 
 /*void MainWindow::readSettings()
@@ -351,6 +431,19 @@ void MainWindow::loadWorkspaceFromFile(QString filename)
         log_error(QString("Unable to read measurement setup from workspace config file: %1").arg(filename));
     }
 
+    QDomElement themeRoot = root.firstChildElement("theme-settings");
+    if (!themeRoot.isNull()) {
+        QString savedTheme = themeRoot.attribute("theme", "auto");
+        setTheme(savedTheme);
+        
+        QString traceColor = themeRoot.attribute("customTraceColor", "");
+        if (!traceColor.isEmpty()) {
+            ThemeManager::instance().setCustomTraceTextColor(QColor(traceColor));
+        } else {
+            ThemeManager::instance().setCustomTraceTextColor(QColor());
+        }
+    }
+
     if (ui->mainTabs->count() > 0)
     {
         ui->mainTabs->setCurrentIndex(0);
@@ -391,6 +484,14 @@ bool MainWindow::saveWorkspaceToFile(QString filename)
         return false;
     }
     root.appendChild(setupRoot);
+
+    QDomElement themeRoot = doc.createElement("theme-settings");
+    themeRoot.setAttribute("theme", _currentTheme);
+    QColor customTrace = ThemeManager::instance().customTraceTextColor();
+    if (customTrace.isValid()) {
+        themeRoot.setAttribute("customTraceColor", customTrace.name(QColor::HexArgb));
+    }
+    root.appendChild(themeRoot);
 
     QFile outFile(filename);
     if(outFile.open(QIODevice::WriteOnly|QIODevice::Text))
@@ -820,32 +921,38 @@ void MainWindow::on_actionGenerator_View_triggered()
     addTxGeneratorWidget();
 }
 
-void MainWindow::onThemeToggleClicked()
-{
-    if (_currentTheme == "light") {
-        setTheme("dark");
-    } else {
-        setTheme("light");
-    }
-}
-
 void MainWindow::setTheme(const QString &theme)
 {
     _currentTheme = theme;
-    bool isDark = (theme == "dark");
-    ThemeManager::instance().applyTheme(isDark ? ThemeManager::Dark : ThemeManager::Light);
+    const bool effectiveDark = effectiveThemePreferenceIsDark(theme);
+    ThemeManager::instance().applyTheme(effectiveDark ? ThemeManager::Dark : ThemeManager::Light);
 
-    if (_btnThemeToggle) {
-        _btnThemeToggle->setText(isDark ? "☀️" : "🌙");
-        _btnThemeToggle->setStyleSheet(
+    if (_actionThemeAuto) {
+        _actionThemeAuto->setChecked(theme == QLatin1String("auto"));
+        _actionThemeLight->setChecked(theme == QLatin1String("light"));
+        _actionThemeDark->setChecked(theme == QLatin1String("dark"));
+    }
+
+    if (_btnTheme) {
+        QString tip;
+        if (theme == QLatin1String("auto")) {
+            tip = tr("Theme: System (%1)").arg(effectiveDark ? tr("Dark") : tr("Light"));
+        } else if (theme == QLatin1String("light")) {
+            tip = tr("Theme: Light");
+        } else {
+            tip = tr("Theme: Dark");
+        }
+        _btnTheme->setToolTip(tip);
+        _btnTheme->setText(effectiveDark ? QStringLiteral("☀") : QStringLiteral("🌙"));
+        _btnTheme->setStyleSheet(
             "QPushButton {"
             "  font-size: 18px;"
             "  border-radius: 16px;"
             "  background: transparent;"
-            "  color: " + QString(isDark ? "white" : "black") + ";"
+            "  color: " + QString(effectiveDark ? "white" : "black") + ";"
             "}"
             "QPushButton:hover {"
-            "  background: rgba(" + QString(isDark ? "255, 255, 255" : "0, 0, 0") + ", 0.1);"
+            "  background: rgba(" + QString(effectiveDark ? "255, 255, 255" : "0, 0, 0") + ", 0.1);"
             "}"
         );
     }

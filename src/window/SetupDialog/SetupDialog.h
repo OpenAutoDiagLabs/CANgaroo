@@ -63,8 +63,8 @@ private slots:
     void on_btAddInterface_clicked();
     void on_btRemoveInterface_clicked();
 
-    void on_btAddDatabase_clicked();
-    void on_btRemoveDatabase_clicked();
+    void on_btAddDbc_clicked();
+    void on_btRemoveDbc_clicked();
     void updateButtons();
 
     void executeAddCanDb();

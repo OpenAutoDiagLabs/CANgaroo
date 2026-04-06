@@ -65,13 +65,18 @@ public:
     
     const ThemeColors& colors() const { return _colors; }
 
+    QColor customTraceTextColor() const { return _customTraceTextColor; }
+    void setCustomTraceTextColor(const QColor &color);
+
 signals:
     void themeChanged(Theme theme);
+    void traceTextColorChanged(QColor color);
 
 private:
     explicit ThemeManager(QObject *parent = nullptr);
     Theme _currentTheme;
     ThemeColors _colors;
+    QColor _customTraceTextColor;
     
     void updateColors(Theme theme);
     void applyStyleSheet(Theme theme);
