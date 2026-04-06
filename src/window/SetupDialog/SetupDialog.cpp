@@ -85,8 +85,6 @@ SetupDialog::SetupDialog(Backend &backend, QWidget *parent) :
     connect(ui->interfacesTreeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(updateButtons()));
 
     connect(ui->btReloadDbc, SIGNAL (released()), this, SLOT(executeReloadCanDbs()));
-    connect(ui->btAddDbc, SIGNAL(released()), this, SLOT(on_btAddDatabase_clicked()));
-    connect(ui->btRemoveDbc, SIGNAL(released()), this, SLOT(on_btRemoveDatabase_clicked()));
     connect(ui->btRefreshNetworks, SIGNAL(released()), this, SLOT(on_btRefreshNetworks_clicked()));
 
     connect(_actionAddCanDb, SIGNAL(triggered()), this, SLOT(executeAddCanDb()));
@@ -381,7 +379,7 @@ void SetupDialog::addCanDb(const QModelIndex &parent, const QString &filename)
     }
 }
 
-void SetupDialog::on_btAddDatabase_clicked()
+void SetupDialog::on_btAddDbc_clicked()
 {
     QStringList files = QFileDialog::getOpenFileNames(this, "Load CAN Databases", "", "Vector DBC Files (*.dbc)");
     if (files.isEmpty()) return;
@@ -394,7 +392,7 @@ void SetupDialog::on_btAddDatabase_clicked()
 
 void SetupDialog::executeAddCanDb()
 {
-    on_btAddDatabase_clicked();
+    on_btAddDbc_clicked();
 }
 
 void SetupDialog::executeDeleteCanDb()
@@ -402,7 +400,7 @@ void SetupDialog::executeDeleteCanDb()
     model->deleteCanDb(getSelectedIndex());
 }
 
-void SetupDialog::on_btRemoveDatabase_clicked()
+void SetupDialog::on_btRemoveDbc_clicked()
 {
     model->deleteCanDb(ui->candbsTreeView->selectionModel()->currentIndex());
 }

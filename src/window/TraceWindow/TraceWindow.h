@@ -61,6 +61,7 @@ public slots:
     void addMessage(const CanMessage &msg);
 private slots:
     void onRowsInserted(const QModelIndex & parent, int first, int last);
+    void onTraceTextColorChanged(QColor color);
 
     void on_cbTimestampMode_currentIndexChanged(int index);
     void on_cbFilterChanged(void);

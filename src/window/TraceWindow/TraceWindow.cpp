@@ -31,6 +31,7 @@
 #include "TraceFilterModel.h"
 #include <QScrollBar>
 #include <core/Backend.h>
+#include <core/ThemeManager.h>
 
 
 TraceWindow::TraceWindow(QWidget *parent, Backend &backend) :
@@ -98,6 +99,9 @@ TraceWindow::TraceWindow(QWidget *parent, Backend &backend) :
     ui->cbTimestampMode->addItem(tr("Relative"), 1);
     ui->cbTimestampMode->addItem(tr("Delta"), 2);
     setTimestampMode(timestamp_mode_delta);
+
+    connect(&ThemeManager::instance(), &ThemeManager::traceTextColorChanged, this, &TraceWindow::onTraceTextColorChanged);
+    onTraceTextColorChanged(ThemeManager::instance().customTraceTextColor());
 
     connect(ui->filterLineEdit, SIGNAL(textChanged(QString)), this, SLOT(on_cbFilterChanged()));
     connect(ui->TraceClearpushButton, SIGNAL(released()), this, SLOT(on_cbTraceClearpushButton()));
@@ -272,5 +276,13 @@ void TraceWindow::on_cbTraceClearpushButton()
 void TraceWindow::on_cbViewMode_currentIndexChanged(int index)
 {
     setMode((mode_t)ui->cbViewMode->itemData(index).toInt());
+}
+
+void TraceWindow::onTraceTextColorChanged(QColor color)
+{
+    QString qss = color.isValid() ? QString("QTreeView { color: %1; }").arg(color.name()) : QString("");
+    ui->treeAgg->setStyleSheet(qss);
+    ui->treeUds->setStyleSheet(qss);
+    ui->treeJ1939->setStyleSheet(qss);
 }
 
