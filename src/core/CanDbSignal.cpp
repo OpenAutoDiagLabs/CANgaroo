@@ -209,6 +209,10 @@ void CanDbSignal::setMuxValue(const uint32_t &muxValue)
 
 bool CanDbSignal::isPresentInMessage(const CanMessage &msg)
 {
+    if (msg.getRawId() != _parent->getRaw_id()) {
+        return false;
+    }
+
     if ((_startBit + _length)>(8*msg.getLength())) {
         return false;
     }

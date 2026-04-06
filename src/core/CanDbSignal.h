@@ -36,6 +36,8 @@ public:
     CanDbSignal(CanDbMessage *parent);
     QString name() const;
     void setName(const QString &name);
+    
+    CanDbMessage* getParentMessage() const { return _parent; }
 
     uint8_t startBit() const;
     void setStartBit(uint8_t startBit);

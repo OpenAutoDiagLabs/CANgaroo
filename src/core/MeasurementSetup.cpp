@@ -102,17 +102,20 @@ void MeasurementSetup::removeNetwork(MeasurementNetwork *network)
 
 CanDbMessage *MeasurementSetup::findDbMessage(const CanMessage &msg) const
 {
-    CanDbMessage *result = 0;
+    CanInterfaceId msgIfId = msg.getInterfaceId();
 
     foreach (MeasurementNetwork *network, _networks) {
-        foreach (pCanDb db, network->_canDbs) {
-            result = db->getMessageById(msg.getRawId());
-            if (result != 0) {
-                return result;
+        // Enforce network context: Only search DBs in the network that contains this interface
+        if (network->getReferencedCanInterfaces().contains(msgIfId)) {
+            foreach (pCanDb db, network->_canDbs) {
+                CanDbMessage *result = db->getMessageById(msg.getRawId());
+                if (result != 0) {
+                    return result;
+                }
             }
         }
     }
-    return result;
+    return 0;
 }
 
 QString MeasurementSetup::getInterfaceName(const CanInterface &interface) const

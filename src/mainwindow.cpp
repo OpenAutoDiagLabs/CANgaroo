@@ -39,6 +39,7 @@
 #include <QLabel>
 #include <QDockWidget>
 #include <QStatusBar>
+#include <QStyleHints>
 
 #include "core/Backend.h"
 #include "core/CanTrace.h"
@@ -50,6 +51,7 @@
 #include <window/CanStatusWindow/CanStatusWindow.h>
 #include <window/RawTxWindow/RawTxWindow.h>
 #include <window/TxGeneratorWindow/TxGeneratorWindow.h>
+#include <window/ReplayWindow/ReplayWindow.h>
 
 #include <driver/SLCANDriver/SLCANDriver.h>
 #include <driver/GrIPDriver/GrIPDriver.h>
@@ -89,6 +91,10 @@ MainWindow::MainWindow(QWidget *parent) :
     actionStandaloneGraph->setShortcut(QKeySequence("Ctrl+Shift+B"));
     ui->menuWindow->addAction(actionStandaloneGraph);
     connect(actionStandaloneGraph, &QAction::triggered, this, &MainWindow::createStandaloneGraphWindow);
+
+    QAction *actionReplayView = new QAction(tr("Replay View"), this);
+    ui->menuWindow->addAction(actionReplayView);
+    connect(actionReplayView, &QAction::triggered, this, [this](){ addReplayWidget(); });
 
     connect(ui->actionStart_Measurement, SIGNAL(triggered()), this, SLOT(startMeasurement()));
     connect(ui->btnStartMeasurement, SIGNAL(released()), this, SLOT(startMeasurement()));
@@ -138,19 +144,24 @@ MainWindow::MainWindow(QWidget *parent) :
         "}"
     );
     
-    ui->horizontalLayoutControls->addWidget(_btnThemeToggle);
-    connect(_btnThemeToggle, &QPushButton::clicked, this, &MainWindow::onThemeToggleClicked);
-
     // Open Standalone Graph Button
     QPushButton *btnOpenGraph = new QPushButton(tr("Graph"), this);
     btnOpenGraph->setIcon(QIcon(":/assets/graph.svg"));
     btnOpenGraph->setToolTip(tr("Open Standalone Graph Window (Ctrl+Shift+B)"));
     btnOpenGraph->setCursor(Qt::PointingHandCursor);
     ui->horizontalLayoutControls->insertWidget(3, btnOpenGraph); // Insert after Setup Interface button
-    connect(btnOpenGraph, &QPushButton::clicked, this, &MainWindow::createStandaloneGraphWindow);
 
-    // Default to Light
-    setTheme("light");
+    // Insert Theme Toggle at the right corner (after the spacer)
+    ui->horizontalLayoutControls->addWidget(_btnThemeToggle);
+    connect(_btnThemeToggle, &QPushButton::clicked, this, &MainWindow::onThemeToggleClicked);
+
+    // Default to OS Theme
+    bool isSystemDark = false;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    isSystemDark = qApp->styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+#endif
+    setTheme(isSystemDark ? "dark" : "light");
+    connect(btnOpenGraph, &QPushButton::clicked, this, &MainWindow::createStandaloneGraphWindow);
 }
 
 MainWindow::~MainWindow()
@@ -520,6 +531,7 @@ QMainWindow *MainWindow::createTraceWindow(QString title)
     QDockWidget *dockStatusWidget = addStatusWidget(mm);
     QDockWidget *dockRawTxWidget = addRawTxWidget(mm);
     QDockWidget *dockGeneratorWidget = addTxGeneratorWidget(mm);
+    QDockWidget *dockReplayWidget = addReplayWidget(mm);
 
     TxGeneratorWindow *gen = qobject_cast<TxGeneratorWindow*>(dockGeneratorWidget->widget());
     RawTxWindow *rawtx = qobject_cast<RawTxWindow*>(dockRawTxWidget->widget());
@@ -534,6 +546,7 @@ QMainWindow *MainWindow::createTraceWindow(QString title)
     mm->splitDockWidget(dockRawTxWidget,dockLogWidget,Qt::Horizontal);
     mm->splitDockWidget(dockGeneratorWidget,dockLogWidget,Qt::Horizontal);
     mm->tabifyDockWidget(dockGeneratorWidget, dockRawTxWidget); // Generator first, Message next
+    mm->tabifyDockWidget(dockGeneratorWidget, dockReplayWidget); // Replay in that group too
     mm->splitDockWidget(dockStatusWidget,dockLogWidget,Qt::Horizontal);
     mm->tabifyDockWidget(dockStatusWidget, dockLogWidget); // Status first, Log next
     
@@ -652,6 +665,19 @@ QDockWidget *MainWindow::addTxGeneratorWidget(QMainWindow *parent)
         connect(rawtx, &RawTxWindow::messageUpdated, gen, &TxGeneratorWindow::updateMessage);
     }
 
+    return dock;
+}
+
+QDockWidget *MainWindow::addReplayWidget(QMainWindow *parent)
+{
+    if (!parent)
+    {
+        parent = currentTab();
+    }
+    QDockWidget *dock = new QDockWidget(tr("Replay View"), parent);
+    ReplayWindow *replay = new ReplayWindow(dock, backend());
+    dock->setWidget(replay);
+    parent->addDockWidget(Qt::BottomDockWidgetArea, dock);
     return dock;
 }
 

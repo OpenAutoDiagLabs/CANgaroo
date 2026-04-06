@@ -26,6 +26,15 @@
 #include <core/CanDbSignal.h>
 #include <core/Backend.h>
 #include <core/ThemeManager.h>
+#include <QMetaType>
+
+class ThemeManager;
+
+struct DecodedSignalData {
+    int interfaceId;
+    QVector<double> timestamps;
+    QVector<double> values;
+};
 
 class VisualizationWidget : public QWidget
 {
@@ -39,19 +48,31 @@ public:
     virtual void applyTheme(ThemeManager::Theme theme) { Q_UNUSED(theme); }
 
     virtual void addMessage(const CanMessage &msg) = 0;
+    virtual void addDecodedData(const QMap<CanDbSignal*, DecodedSignalData>& newPoints) = 0;
     virtual void clear() = 0;
     
     virtual void zoomIn() {}
     virtual void zoomOut() {}
     virtual void resetZoom() {}
     virtual void setWindowDuration(int seconds) { Q_UNUSED(seconds); }
-    virtual void addSignal(CanDbSignal *signal) { if (!_signals.contains(signal)) _signals.append(signal); }
-    virtual void addSignals(const QList<CanDbSignal*> &signalList) { 
-        for (auto s : signalList) addSignal(s); 
+    virtual void addSignal(CanDbSignal *signal, const CanInterfaceIdList &interfaces = {}) { 
+        if (!_signals.contains(signal)) {
+            _signals.append(signal);
+        }
+        if (!interfaces.isEmpty()) {
+            _signalInterfaces[signal] = interfaces;
+        }
     }
-    virtual void removeSignal(CanDbSignal *signal) { _signals.removeAll(signal); }
-    virtual void clearSignals() { _signals.clear(); }
+    virtual void removeSignal(CanDbSignal *signal) { 
+        _signals.removeAll(signal); 
+        _signalInterfaces.remove(signal);
+    }
+    virtual void clearSignals() { _signals.clear(); _signalInterfaces.clear(); _signalBuffers.clear(); }
     virtual QList<CanDbSignal*> getSignals() const { return _signals; }
+
+    virtual CanInterfaceIdList getSignalInterfaces(CanDbSignal *signal) const {
+        return _signalInterfaces.value(signal);
+    }
 
     virtual void setGlobalStartTime(double t) { _startTime = t; }
 
@@ -64,10 +85,25 @@ public:
     }
 
     virtual void onActivated() {}
+    virtual void setActive(bool active) { Q_UNUSED(active); }
+
+    struct GraphSignalBuffer {
+        QVector<double> timestamps;
+        QVector<double> values;
+    };
 
 protected:
     Backend &_backend;
     QList<CanDbSignal*> _signals;
     QMap<CanDbSignal*, QColor> _signalColors;
+    QMap<CanDbSignal*, CanInterfaceIdList> _signalInterfaces;
+    QMap<CanDbSignal*, GraphSignalBuffer> _signalBuffers;
+    QMap<CanDbSignal*, int> _syncIndices; // Index of next point in buffer to add to chart
     double _startTime = -1.0;
 };
+
+Q_DECLARE_METATYPE(DecodedSignalData)
+Q_DECLARE_METATYPE(QList<CanDbSignal*>)
+
+typedef QMap<CanDbSignal*,CanInterfaceIdList> SignalInterfaceMap;
+Q_DECLARE_METATYPE(SignalInterfaceMap)

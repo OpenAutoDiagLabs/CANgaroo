@@ -209,18 +209,8 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QTreeView" name="candbsTreeView">
-             <property name="alternatingRowColors">
-              <bool>false</bool>
-             </property>
-             <property name="uniformRowHeights">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="widget_3" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <widget class="QWidget" name="candbsToolbarWidget" native="true">
+             <layout class="QHBoxLayout" name="candbsToolbarLayout">
               <property name="leftMargin">
                <number>0</number>
               </property>
@@ -234,27 +224,56 @@
                <number>0</number>
               </property>
               <item>
-               <widget class="QPushButton" name="btAddDatabase">
+               <widget class="QToolButton" name="btAddDbc">
                 <property name="text">
-                 <string>Add &amp;Database...</string>
+                 <string>➕ Add DBC</string>
+                </property>
+                <property name="toolTip">
+                 <string>Add DBC file...</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="btRemoveDatabase">
+               <widget class="QToolButton" name="btRemoveDbc">
                 <property name="text">
-                 <string>&amp;Remove Database</string>
+                 <string>➖ Remove</string>
+                </property>
+                <property name="toolTip">
+                 <string>Remove selected DBC file</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="btReloadDatabases">
+               <widget class="QToolButton" name="btReloadDbc">
                 <property name="text">
-                 <string>Reload Databases</string>
+                 <string>⟳ Reload</string>
+                </property>
+                <property name="toolTip">
+                 <string>Reload selected DBC</string>
                 </property>
                </widget>
+              </item>
+              <item>
+               <spacer name="candbsToolbarSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </spacer>
               </item>
              </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTreeView" name="candbsTreeView">
+             <property name="alternatingRowColors">
+              <bool>false</bool>
+             </property>
+             <property name="uniformRowHeights">
+              <bool>false</bool>
+             </property>
+             <property name="contextMenuPolicy">
+              <enum>Qt::CustomContextMenu</enum>
+             </property>
             </widget>
            </item>
           </layout>

@@ -25,6 +25,7 @@
 #include <QtCharts/QChartView>
 #include <QtCharts/QScatterSeries>
 #include <QtCharts/QValueAxis>
+#include <QMenu>
 
 #ifdef QT_CHARTS_USE_NAMESPACE
 QT_CHARTS_USE_NAMESPACE
@@ -38,8 +39,9 @@ public:
     virtual ~ScatterVisualization();
 
     virtual void addMessage(const CanMessage &msg) override;
+    virtual void addDecodedData(const QMap<CanDbSignal*, DecodedSignalData>& newPoints) override;
     virtual void clear() override;
-    virtual void addSignal(CanDbSignal *signal) override;
+    virtual void addSignal(CanDbSignal *signal, const CanInterfaceIdList &interfaces = {}) override;
     virtual void clearSignals() override;
     virtual void setSignalColor(CanDbSignal *signal, const QColor &color) override;
     virtual void zoomIn() override;
@@ -49,6 +51,7 @@ public:
 public slots:
     virtual void onActivated() override;
     virtual void applyTheme(ThemeManager::Theme theme) override;
+    virtual void setActive(bool active) override;
 
     // Exposed for GraphWindow management
     QChartView* chartView() const { return _chartView; }
@@ -66,9 +69,12 @@ signals:
 protected:
     virtual void wheelEvent(QWheelEvent *event) override;
     virtual bool eventFilter(QObject *watched, QEvent *event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
 private slots:
     void onAxisRangeChanged(qreal min, qreal max);
+    void exportToCsv();
+    void exportToImage();
 
 private:
     QChartView *_chartView;
@@ -78,9 +84,10 @@ private:
     int _windowDuration;
     bool _autoScroll;
     bool _isUpdatingRange;
-    static const int MAX_POINTS = 100000;
+    static const int MAX_POINTS = 1000;
 
     void updateAxes();
+    void handleHover(QPointF pos);
 
     QGraphicsLineItem *_cursorLine;
     QMap<CanDbSignal*, QGraphicsEllipseItem*> _tracers;

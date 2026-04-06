@@ -67,6 +67,8 @@ class CanDb
 
         bool saveXML(Backend &backend, QDomDocument &xml, QDomElement &root);
 
+        void updateFrom(CanDb *other);
+
 private:
         QString _path;
         QString _version;

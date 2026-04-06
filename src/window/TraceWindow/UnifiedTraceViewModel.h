@@ -40,8 +40,11 @@ private slots:
     void beforeClear();
     void afterClear();
     void onSetupChanged();
+    void onResumeMeasurement();
+    void onPauseMeasurement();
 
 private:
+    bool m_isActive = true;
     std::shared_ptr<UnifiedTraceItem> m_rootItem;
     std::shared_ptr<UnifiedTraceItem> m_aggHeader;
     std::shared_ptr<UnifiedTraceItem> m_udsHeader;

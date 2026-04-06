@@ -77,13 +77,16 @@ SetupDialog::SetupDialog(Backend &backend, QWidget *parent) :
     ui->candbsTreeView->setColumnHidden(SetupDialogTreeModel::column_path, false);
 
     connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(treeViewContextMenu(QPoint)));
+    connect(ui->candbsTreeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(candbsTreeViewContextMenu(QPoint)));
     connect(ui->edNetworkName, SIGNAL(textChanged(QString)), this, SLOT(edNetworkNameChanged()));
 
     connect(ui->treeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(treeViewSelectionChanged(QItemSelection,QItemSelection)));
     connect(ui->candbsTreeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(updateButtons()));
     connect(ui->interfacesTreeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(updateButtons()));
 
-    connect(ui->btReloadDatabases, SIGNAL (released()), this, SLOT(executeReloadCanDbs()));
+    connect(ui->btReloadDbc, SIGNAL (released()), this, SLOT(executeReloadCanDbs()));
+    connect(ui->btAddDbc, SIGNAL(released()), this, SLOT(on_btAddDatabase_clicked()));
+    connect(ui->btRemoveDbc, SIGNAL(released()), this, SLOT(on_btRemoveDatabase_clicked()));
     connect(ui->btRefreshNetworks, SIGNAL(released()), this, SLOT(on_btRefreshNetworks_clicked()));
 
     connect(_actionAddCanDb, SIGNAL(triggered()), this, SLOT(executeAddCanDb()));
@@ -232,6 +235,21 @@ void SetupDialog::treeViewContextMenu(const QPoint &pos)
 
 
     QPoint globalPos = ui->treeView->mapToGlobal(pos);
+    contextMenu.exec(globalPos);
+}
+
+void SetupDialog::candbsTreeViewContextMenu(const QPoint &pos)
+{
+    QMenu contextMenu;
+    QModelIndex index = ui->candbsTreeView->indexAt(pos);
+    if (index.isValid()) {
+        ui->candbsTreeView->setCurrentIndex(index);
+        contextMenu.addAction(_actionReloadCanDbs);
+        contextMenu.addAction(_actionDeleteCanDb);
+    } else {
+        contextMenu.addAction(_actionAddCanDb);
+    }
+    QPoint globalPos = ui->candbsTreeView->mapToGlobal(pos);
     contextMenu.exec(globalPos);
 }
 
@@ -391,9 +409,8 @@ void SetupDialog::on_btRemoveDatabase_clicked()
 
 void SetupDialog::updateButtons()
 {
-    ui->btRemoveDatabase->setEnabled(ui->candbsTreeView->selectionModel()->hasSelection());
-
-//    ui->btReloadDatabases->setEnabled(ui->candbsTreeView->children.count() > 0);
+    ui->btRemoveDbc->setEnabled(ui->candbsTreeView->selectionModel()->hasSelection());
+    ui->btReloadDbc->setEnabled(ui->candbsTreeView->selectionModel()->hasSelection());
 
     ui->btRemoveInterface->setEnabled(ui->interfacesTreeView->selectionModel()->hasSelection());
 
@@ -418,6 +435,14 @@ void SetupDialog::on_btRefreshNetworks_clicked()
     _backend->setDefaultSetup();
     model->load(_backend->getSetup());
     ui->treeView->expandAll();
+
+    QModelIndex first = model->index(0, 0, QModelIndex());
+    if (first.isValid()) {
+        ui->treeView->setCurrentIndex(first);
+    } else {
+        ui->stackedWidget->setCurrentWidget(ui->emptyPage);
+    }
+
     updateButtons();
     _isReflashNetworks = true;
 }

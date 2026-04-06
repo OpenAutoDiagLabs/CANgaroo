@@ -54,14 +54,58 @@ TextVisualization::~TextVisualization()
 {
 }
 
+void TextVisualization::addDecodedData(const QMap<CanDbSignal*, DecodedSignalData>& newPoints)
+{
+    for (auto it = newPoints.begin(); it != newPoints.end(); ++it) {
+        CanDbSignal* signal = it.key();
+        if (!_signals.contains(signal)) continue;
+
+        const DecodedSignalData &data = it.value();
+        if (data.timestamps.isEmpty()) continue;
+        
+        _signalBuffers[signal].timestamps.append(data.timestamps);
+        _signalBuffers[signal].values.append(data.values);
+
+        if (_signalDataMap.contains(signal)) {
+            _signalDataMap[signal].value = data.values.last();
+            _signalDataMap[signal].updated = true;
+        }
+
+        if (_signalBuffers[signal].values.size() > 100) {
+            int removeCount = _signalBuffers[signal].values.size() - 80;
+            _signalBuffers[signal].timestamps.remove(0, removeCount);
+            _signalBuffers[signal].values.remove(0, removeCount);
+        }
+    }
+}
+
 void TextVisualization::addMessage(const CanMessage &msg)
 {
+    CanInterfaceId msgIfId = msg.getInterfaceId();
+
     for (CanDbSignal *signal : _signals) {
         if (signal->isPresentInMessage(msg)) {
+            // Network Context Filtering
+            if (_signalInterfaces.contains(signal)) {
+                if (!_signalInterfaces[signal].contains(msgIfId)) {
+                    continue;
+                }
+            }
+
             double value = signal->extractPhysicalFromMessage(msg);
+            
+            // Populate isolated buffer
+            _signalBuffers[signal].timestamps.append(msg.getFloatTimestamp());
+            _signalBuffers[signal].values.append(value);
+
             if (_signalDataMap.contains(signal)) {
                 _signalDataMap[signal].value = value;
                 _signalDataMap[signal].updated = true;
+            }
+            
+            if (_signalBuffers[signal].values.size() > 100) {
+                _signalBuffers[signal].timestamps.remove(0);
+                _signalBuffers[signal].values.remove(0);
             }
         }
     }
@@ -117,6 +161,7 @@ void TextVisualization::applyTheme(ThemeManager::Theme theme)
 
 void TextVisualization::clear()
 {
+    _signalBuffers.clear();
     for (auto it = _signalDataMap.begin(); it != _signalDataMap.end(); ++it) {
         it.value().value = 0;
         it.value().updated = true;
@@ -145,11 +190,11 @@ void TextVisualization::clearSignals()
     _updateTimer->start();
 }
 
-void TextVisualization::addSignal(CanDbSignal *signal)
+void TextVisualization::addSignal(CanDbSignal *signal, const CanInterfaceIdList &interfaces)
 {
     if (_signalDataMap.contains(signal)) return;
 
-    VisualizationWidget::addSignal(signal);
+    VisualizationWidget::addSignal(signal, interfaces);
     createSignalCard(signal);
 }
 

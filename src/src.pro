@@ -35,9 +35,13 @@ macx:OBJECTS_DIR = ../build/o/mac
 
 SOURCES += main.cpp\
     mainwindow.cpp \
+    core/CanLogParser.cpp \
+    core/CanReplayer.cpp \
     window/ConditionalLoggingDialog.cpp
 
 HEADERS  += mainwindow.h \
+    core/CanLogParser.h \
+    core/CanReplayer.h \
     window/ConditionalLoggingDialog.h
 
 FORMS    += mainwindow.ui
@@ -55,6 +59,7 @@ include($$PWD/window/GraphWindow/GraphWindow.pri)
 include($$PWD/window/CanStatusWindow/CanStatusWindow.pri)
 include($$PWD/window/RawTxWindow/RawTxWindow.pri)
 include($$PWD/window/TxGeneratorWindow/TxGeneratorWindow.pri)
+include($$PWD/window/ReplayWindow/ReplayWindow.pri)
 
 
 unix:PKGCONFIG += libnl-3.0

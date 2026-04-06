@@ -33,7 +33,12 @@ class SignalSelectorDialog : public QDialog {
     Q_OBJECT
 public:
     explicit SignalSelectorDialog(QWidget *parent, Backend &backend);
-    QList<CanDbSignal*> getSelectedSignals() const;
+    struct SelectedSignal {
+        CanDbSignal *signal;
+        CanInterfaceIdList interfaces;
+    };
+
+    QList<SelectedSignal> getSelectedSignalsWithContext() const;
     void setSelectedSignals(const QList<CanDbSignal*> &sigList);
 
 private slots:

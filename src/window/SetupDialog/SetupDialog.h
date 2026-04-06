@@ -55,6 +55,7 @@ signals:
 public slots:
     void treeViewSelectionChanged(const QItemSelection & selected, const QItemSelection & deselected);
     void treeViewContextMenu(const QPoint& pos);
+    void candbsTreeViewContextMenu(const QPoint& pos);
 
 private slots:
     void edNetworkNameChanged();
