@@ -1,6 +1,6 @@
 /*
 
-  Copyright (c) 2016 Hubert Denkmair <hubert@denkmair.de>
+  Copyright (c) 2026 Jayachandran Dharuman <jayachandran2307@gmail.com>
 
   This file is part of cangaroo.
 
