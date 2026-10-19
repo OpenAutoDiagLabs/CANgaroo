@@ -54,7 +54,9 @@ public:
         capability_auto_restart    = 0x10,
         capability_config_os       = 0x20,
         capability_custom_bitrate  = 0x40,
-        capability_custom_canfd_bitrate = 0x80
+        capability_custom_canfd_bitrate = 0x80,
+        capability_bus_off_recovery = 0x800,
+        capability_tdc             = 0x1000
     };
 
 public:

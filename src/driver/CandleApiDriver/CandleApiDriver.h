@@ -1,6 +1,7 @@
 /*
 
   Copyright (c) 2016 Hubert Denkmair <hubert@denkmair.de>
+  Copyright (c) 2026 Schildkroet
 
   This file is part of cangaroo.
 
@@ -21,29 +22,26 @@
 
 #pragma once
 
-#include <core/Backend.h>
-#include <driver/CanDriver.h>
-#include "api/candle.h"
-#include <QList>
+#include "core/Backend.h"
+#include "driver/CanDriver.h"
+#include "CandleSharedDevice.h"
 
-class CandleApiInterface;
-class CandleApiDevice;
+#include <map>
+#include <memory>
+#include <string>
+
+
 class GenericCanSetupPage;
 
 class CandleApiDriver : public CanDriver
 {
 public:
     CandleApiDriver(Backend &backend);
-    virtual ~CandleApiDriver();
 
-    virtual QString getName();
-    virtual bool update();
+    QString getName() override;
+    bool update() override;
 
 private:
     GenericCanSetupPage *setupPage;
-    QList<CandleApiDevice*> _devices;
-
-    void deleteAllDevices();
-
+    std::map<std::wstring, std::shared_ptr<CandleSharedDevice>> _devices;
 };
-
