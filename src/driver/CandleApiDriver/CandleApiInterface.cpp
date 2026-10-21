@@ -734,8 +734,8 @@ bool CandleApiInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
         _numRxOverruns++;
         CanMessage err;
         err.setInterfaceId(getId());
-        err.setErrorFlag(BusError::Overrun);
-        err.setTimestamp_us(frameTs_us);
+        err.setErrorFrame(true);
+        err.setTimestamp(frameTs_us / 1000000, frameTs_us % 1000000);
         msglist.append(err);
     }
 
@@ -748,7 +748,7 @@ bool CandleApiInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
         }
         _numTx++;
         txMsg.setInterfaceId(getId());
-        txMsg.setTimestamp_us(frameTs_us);
+        txMsg.setTimestamp(frameTs_us / 1000000, frameTs_us % 1000000);
         msglist.append(txMsg);
         return true;
     }
@@ -761,39 +761,20 @@ bool CandleApiInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
     msg.setExtended(candle_fd_frame_is_extended_id(&frame));
 
     if (frameType == CANDLE_FRAMETYPE_ERROR) {
-        const uint32_t errId = candle_fd_frame_id(&frame);
-        const uint8_t *d = candle_fd_frame_data(&frame);
         // The ID field carries error classes, not a CAN ID: don't show or
-        // decode it as one.
+        // decode it as one. Base CanMessage only models a boolean error
+        // frame, so all gs_usb error classes collapse to that single flag.
+        // ponytail: no granular error sub-classes; add a BusError enum to
+        // CanMessage if the UI ever needs to distinguish them.
         msg.setId(0);
         msg.setExtended(false);
-        if (errId & 0x00000001) msg.setErrorFlag(BusError::TxTimeout);
-        if (errId & 0x00000020) msg.setErrorFlag(BusError::Ack);
-        if (errId & 0x00000040) msg.setErrorFlag(BusError::BusOff);
-        if (errId & 0x00000100) msg.setErrorFlag(BusError::Restarted);
-        if (errId & 0x00000004) {
-            if (d[1] & 0x03) msg.setErrorFlag(BusError::Overrun);
-            if (d[1] & 0x0C) msg.setErrorFlag(BusError::ErrorWarning);
-            if (d[1] & 0x30) msg.setErrorFlag(BusError::ErrorPassive);
-            if (d[1] & 0x40) msg.setErrorFlag(BusError::ErrorActive);
-        }
-        if (errId & 0x00000008) {
-            const uint8_t prot = d[2];
-            if (prot & 0x01) msg.setErrorFlag(BusError::Bit);
-            if (prot & 0x02) msg.setErrorFlag(BusError::Form);
-            if (prot & 0x04) msg.setErrorFlag(BusError::Stuff);
-            if (prot & 0x18) msg.setErrorFlag(BusError::Bit);
-            if (d[3] == 0x08) msg.setErrorFlag(BusError::Crc);
-        }
-        // CAN_ERR_BUSERROR (0x80) or anything unclassified
-        if (!msg.isErrorFrame()) msg.setErrorFlag(BusError::Generic);
+        msg.setErrorFrame(true);
     }
     msg.setRTR(candle_fd_frame_is_rtr(&frame));
 
     const bool isFd = candle_fd_frame_is_fd(&frame);
     msg.setFD(isFd);
     msg.setBRS(isFd && candle_fd_frame_is_brs(&frame));
-    msg.setESI(isFd && (frame.flags & CANDLE_FRAME_FLAG_ESI) != 0);
 
     const uint8_t raw_dlc = candle_fd_frame_dlc(&frame);
     const uint8_t len = isFd ? candle_dlc_to_len(raw_dlc) : raw_dlc;
@@ -803,7 +784,7 @@ bool CandleApiInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
         msg.setByte(i, data[i]);
     }
 
-    msg.setTimestamp_us(frameTs_us);
+    msg.setTimestamp(frameTs_us / 1000000, frameTs_us % 1000000);
     msglist.append(msg);
     return true;
 }

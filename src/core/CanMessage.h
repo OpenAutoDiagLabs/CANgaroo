@@ -64,7 +64,7 @@ public:
 	void setErrorFrame(const bool isErrorFrame);
 
     CanInterfaceId getInterfaceId() const;
-    void setInterfaceId(CanInterfaceId interface);
+    void setInterfaceId(CanInterfaceId iface);
 
 	uint8_t getLength() const;
 	void setLength(const uint8_t dlc);
