@@ -187,10 +187,6 @@ canconvert TCU.arxml TCU.dbc
 
 Download the latest release tarball from the [Releases Page](https://github.com/OpenAutoDiagLabs/cangaroo/releases).
 
----
-
-## 🤝 Contribution & Community
-
 ### Verifying Your Download
 All official releases include a SHA256 checksum. Verify your download using:
 
