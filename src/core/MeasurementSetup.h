@@ -42,7 +42,7 @@ public:
     void clear();
 
     CanDbMessage *findDbMessage(const CanMessage &msg) const;
-    QString getInterfaceName(const CanInterface &interface) const;
+    QString getInterfaceName(const CanInterface &iface) const;
 
     int countNetworks() const;
     MeasurementNetwork *getNetwork(int index) const;
